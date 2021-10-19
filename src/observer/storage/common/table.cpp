@@ -111,6 +111,49 @@ RC Table::create(const char *path, const char *name, const char *base_dir, int a
   return rc;
 }
 
+// tzh add here:
+RC Table::drop(const char *path, const char *name, const char *base_dir){
+    if (nullptr == name || common::is_blank(name)) {
+        LOG_WARN("Name cannot be empty");
+        return RC::INVALID_ARGUMENT;
+    }
+    LOG_INFO("Begin to drop table %s:%s", base_dir, name);
+    RC rc = RC::SUCCESS;
+
+    // remove index files
+    const int index_num = table_meta_.index_num();
+    for (int i = 0; i < index_num; i++) {
+        const IndexMeta *index_meta = table_meta_.index(i);
+        const FieldMeta *field_meta = table_meta_.field(index_meta->field());
+        if (field_meta == nullptr) {
+            LOG_PANIC("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
+                      name, index_meta->name(), index_meta->field());
+            return RC::GENERIC_ERROR;
+        }
+
+        std::string index_file = index_data_file(base_dir, name, index_meta->name());
+        if(remove(index_file.c_str())!=0){
+            LOG_ERROR("Fail to remove file %s, due to %s.", name, strerror(errno));
+            return RC::IOERR_DELETE;
+        }
+    }
+
+    // remove("name.table")
+    if(remove(path)!=0){
+        LOG_ERROR("Fail to remove file %s, due to %s.", name, strerror(errno));
+        return RC::IOERR_DELETE;
+    }
+    // remove("name.data")
+    std::string data_file = std::string(base_dir) + "/" + name + TABLE_DATA_SUFFIX;
+    if(remove(data_file.c_str())!=0){
+        LOG_ERROR("Fail to remove file %s, due to %s.", name, strerror(errno));
+        return RC::IOERR_DELETE;
+    }
+
+    LOG_INFO("Successfully drop table %s:%s", base_dir, name);
+    return rc;
+}
+
 RC Table::open(const char *meta_file, const char *base_dir) {
   // 加载元数据文件
   std::fstream fs;

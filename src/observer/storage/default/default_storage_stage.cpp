@@ -244,6 +244,16 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
       snprintf(response, sizeof(response), "%s", result.c_str());
     }
     break;
+
+    // tzh add here:
+  case SCF_DROP_TABLE: {
+          //   RC drop_table(const char *dbname, const char *relation_name);
+        const char *table_name = sql->sstr.drop_table.relation_name;  // storage_event->execution_plan_event->parse_defs
+        rc = handler_->drop_table(current_db, table_name);
+        snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    }
+    break;
+
   default:
       snprintf(response, sizeof(response), "Unsupported sql: %d\n", sql->flag);
       break;
