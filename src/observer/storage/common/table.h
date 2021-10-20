@@ -26,6 +26,7 @@ struct RID;
 class Index;
 class IndexScanner;
 class RecordDeleter;
+// class RecordUpdater;
 class Trx;
 
 class Table {
