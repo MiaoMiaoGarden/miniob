@@ -635,6 +635,9 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
         
         // update
         rc = record_handler_->update_record(&new_record);
+        
+        rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
+        rc = insert_entry_of_indexes(new_record.data, rid);
 
         if (rc != RC::SUCCESS) {
           LOG_TRACE("Record reader break the table scanning. rc=%d:%s", rc, strrc(rc));
