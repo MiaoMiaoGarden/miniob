@@ -10,7 +10,11 @@ CMAKE_CXX_FLAGS is  -Wall -DCMAKE_EXPORT_COMPILE_COMMANDS=1  -O0 -g -DDEBUG
 CMAKE_INSTALL_PREFIX has been set as /usr/local
 Install target dir is /usr/local
 CMake Error at CMakeLists.txt:71 (ADD_SUBDIRECTORY):
-  ADD_SUBDIRECTORY given source "deps" which is not an existing directory.
+  The source directory
+
+    /Users/zhouxiaolun/miniob/deps
+
+  does not contain a CMakeLists.txt file.
 
 
 Begin to build miniob
