@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="obclient"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\deps\;CMake Files\deps\common\;CMake Files\src\;CMake Files\src\obclient\;CMake Files\src\observer\;CMake Files\unitest\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\usr\;CMake Files\..\..\..\usr\local\;CMake Files\..\..\..\usr\local\lib\;CMake Files\..\..\..\usr\local\lib\cmake\;CMake Files\..\..\..\usr\local\lib\cmake\GTest\;CMake Files\test\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="obclient">
+				<Option output="/Users/zhouxiaolun/miniob/cmake-build-debug/bin/obclient" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/../../bin"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D__MACH__"/>
+					<Add option="-DENABLE_DEBUG"/>
+					<Add directory="/Users/zhouxiaolun/miniob/src/obclient/."/>
+					<Add directory="/Users/zhouxiaolun/miniob/src/obclient/../../deps"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/13.0.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 obclient"/>
+					<CompileFile command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="obclient/fast">
+				<Option output="/Users/zhouxiaolun/miniob/cmake-build-debug/bin/obclient" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/../../bin"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-D__MACH__"/>
+					<Add option="-DENABLE_DEBUG"/>
+					<Add directory="/Users/zhouxiaolun/miniob/src/obclient/."/>
+					<Add directory="/Users/zhouxiaolun/miniob/src/obclient/../../deps"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/13.0.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 obclient/fast"/>
+					<CompileFile command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/local/bin/gmake -j12 -f &quot;/Users/zhouxiaolun/miniob/cmake-build-debug/src/obclient/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/zhouxiaolun/miniob/src/obclient/client.cpp">
+			<Option target="obclient"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/deps/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\deps\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/deps/common/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\deps\common\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/src/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/src/obclient/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\obclient\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/src/observer/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\src\observer\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/unitest/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\unitest\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/../../../usr/local/lib/cmake/GTest/GTestConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\usr\local\lib\cmake\GTest\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/../../../usr/local/lib/cmake/GTest/GTestConfigVersion.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\usr\local\lib\cmake\GTest\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/../../../usr/local/lib/cmake/GTest/GTestTargets-noconfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\usr\local\lib\cmake\GTest\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/../../../usr/local/lib/cmake/GTest/GTestTargets.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\usr\local\lib\cmake\GTest\"/>
+		</Unit>
+		<Unit filename="/Users/zhouxiaolun/miniob/test/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\test\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

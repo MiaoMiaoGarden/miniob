@@ -1,0 +1,5 @@
+if(EXISTS "/Users/zhouxiaolun/miniob/cmake-build-debug/unitest/path_test[1]_tests.cmake")
+  include("/Users/zhouxiaolun/miniob/cmake-build-debug/unitest/path_test[1]_tests.cmake")
+else()
+  add_test(path_test_NOT_BUILT path_test_NOT_BUILT)
+endif()

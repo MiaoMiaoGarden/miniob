@@ -270,6 +270,14 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
         field->name(), field->type(), value.type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
+    if (field->type() == AttrType::DATES) {
+        // 处理对于日期字段的正确性判断
+        if (value.data) {
+            if (!isValidDate(static_cast<char*>(value.data))) {
+                return RC::GENERIC_ERROR;
+            }
+        }
+    }
   }
 
   // 复制所有字段的值
@@ -717,4 +725,47 @@ RC Table::sync() {
   }
   LOG_INFO("Sync table over. table=%s", name());
   return rc;
+}
+// see : https://stackoverflow.com/questions/9435385/split-a-string-using-c11
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::stringstream ss(s);
+    std::string item;
+    std::vector<std::string> elems;
+    while (std::getline(ss, item, delim)) {
+         elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
+    }
+    return elems;
+}
+bool Table::isValidDate(const char *date) {
+    const std::vector<std::string> &dates = split(date, '-');
+    if (dates.size() != 3) {
+        LOG_ERROR("Failed to parser date filed");
+        return false;
+    }
+    // 1. judge year
+    int year = atoi( dates[0].c_str());
+    bool isLeap = (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
+    if (year > 2038) {
+        LOG_ERROR("year is should not bigger than 2038!");
+        return false ;
+    }
+    int month = atoi( dates[1].c_str());
+    int day = atoi( dates[2].c_str());
+    if (month == 1 || month == 3 || month == 5 || month == 7 ||  month == 8 || month == 11 || month == 12) {
+        if (day <= 0 || day > 31) {
+            LOG_ERROR("%d month has %d day is should not bigger than 31 or smaller than 0", month, day);
+            return false ;
+        }
+    } else if (month == 2) {
+        if (day <= 0 || day > 28 + isLeap) {
+            LOG_ERROR("%d year leap state is  %d . so %d month is should not have bigger than 28 (29) or smaller than 0 days", year, isLeap, month);
+            return false ;
+        }
+    } else {
+        if (day <= 0 || day > 30) {
+            LOG_ERROR("%d month is should not have bigger than 30 or smaller than 0 days", month);
+            return false ;
+        }
+    }
+     return true;
 }

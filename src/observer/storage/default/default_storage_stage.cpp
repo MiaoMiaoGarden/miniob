@@ -41,6 +41,7 @@ const std::string DefaultStorageStage::QUERY_METRIC_TAG = "DefaultStorageStage.q
 const char * CONF_BASE_DIR = "BaseDir";
 const char * CONF_SYSTEM_DB = "SystemDb";
 
+
 const char * DEFAULT_SYSTEM_DB = "sys";
 
 //! Constructor
