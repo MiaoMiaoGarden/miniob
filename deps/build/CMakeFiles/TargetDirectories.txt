@@ -1,0 +1,14 @@
+/oceanbase/deps/build/CMakeFiles/install/strip.dir
+/oceanbase/deps/build/CMakeFiles/install/local.dir
+/oceanbase/deps/build/CMakeFiles/install.dir
+/oceanbase/deps/build/CMakeFiles/list_install_components.dir
+/oceanbase/deps/build/CMakeFiles/rebuild_cache.dir
+/oceanbase/deps/build/CMakeFiles/edit_cache.dir
+/oceanbase/deps/build/common/CMakeFiles/install/local.dir
+/oceanbase/deps/build/common/CMakeFiles/install.dir
+/oceanbase/deps/build/common/CMakeFiles/list_install_components.dir
+/oceanbase/deps/build/common/CMakeFiles/rebuild_cache.dir
+/oceanbase/deps/build/common/CMakeFiles/edit_cache.dir
+/oceanbase/deps/build/common/CMakeFiles/install/strip.dir
+/oceanbase/deps/build/common/CMakeFiles/common_static.dir
+/oceanbase/deps/build/common/CMakeFiles/common.dir
