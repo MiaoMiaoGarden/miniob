@@ -9,102 +9,10 @@ DEBUG has been set as TRUE TRUE
 CMAKE_CXX_FLAGS is  -Wall -DCMAKE_EXPORT_COMPILE_COMMANDS=1  -O0 -g -DDEBUG 
 CMAKE_INSTALL_PREFIX has been set as /usr/local
 Install target dir is /usr/local
-Begin to build common
--- This is PROJECT_BINARY_DIR dir /Users/zhouxiaolun/miniob/cmake-build-debug/deps/common
--- This is PROJECT_SOURCE_DIR dir /Users/zhouxiaolun/miniob/deps/common
-Use /Users/zhouxiaolun/miniob/deps/common/conf/ini.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/io/io.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/io/roll_select_dir.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/lang/bitmap.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/lang/mutex.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/lang/string.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/log/log.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/math/md5.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/math/random_generator.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/math/regex.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/console_reporter.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/histogram_snapshot.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/metrics.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/metrics_registry.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/reporter.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/reservoir.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/sampler.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/timer_snapshot.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/metrics/uniform_reservoir.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/os/os.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/os/path.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/os/pidfile.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/os/process.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/os/process_param.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/os/signal.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/callback.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/event_dispatcher.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/example_stage.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/init.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/kill_thread.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/metrics_report_event.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/metrics_stage.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/seda_config.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/stage.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/stage_event.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/thread_pool.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/seda/timer_stage.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/time/datetime.cpp
-Use /Users/zhouxiaolun/miniob/deps/common/time/timeout_info.cpp
--- This is the func_static OUTPUT_NAME:common
-Install conf/ini.h to /usr/local/common/include/conf
-Install defs.h to /usr/local/common/include/
-Install io/io.h to /usr/local/common/include/io
-Install io/roll_select_dir.h to /usr/local/common/include/io
-Install io/select_dir.h to /usr/local/common/include/io
-Install lang/bitmap.h to /usr/local/common/include/lang
-Install lang/mutex.h to /usr/local/common/include/lang
-Install lang/serializable.h to /usr/local/common/include/lang
-Install lang/string.h to /usr/local/common/include/lang
-Install log/log.h to /usr/local/common/include/log
-Install math/md5.h to /usr/local/common/include/math
-Install math/random_generator.h to /usr/local/common/include/math
-Install math/regex.h to /usr/local/common/include/math
-Install metrics/console_reporter.h to /usr/local/common/include/metrics
-Install metrics/histogram_snapshot.h to /usr/local/common/include/metrics
-Install metrics/log_reporter.h to /usr/local/common/include/metrics
-Install metrics/metric.h to /usr/local/common/include/metrics
-Install metrics/metrics.h to /usr/local/common/include/metrics
-Install metrics/metrics_registry.h to /usr/local/common/include/metrics
-Install metrics/reporter.h to /usr/local/common/include/metrics
-Install metrics/reservoir.h to /usr/local/common/include/metrics
-Install metrics/sampler.h to /usr/local/common/include/metrics
-Install metrics/snapshot.h to /usr/local/common/include/metrics
-Install metrics/timer_snapshot.h to /usr/local/common/include/metrics
-Install metrics/uniform_reservoir.h to /usr/local/common/include/metrics
-Install mm/debug_new.h to /usr/local/common/include/mm
-Install mm/mem.h to /usr/local/common/include/mm
-Install mm/mpool.h to /usr/local/common/include/mm
-Install os/os.h to /usr/local/common/include/os
-Install os/path.h to /usr/local/common/include/os
-Install os/pidfile.h to /usr/local/common/include/os
-Install os/process.h to /usr/local/common/include/os
-Install os/process_param.h to /usr/local/common/include/os
-Install os/signal.h to /usr/local/common/include/os
-Install seda/callback.h to /usr/local/common/include/seda
-Install seda/class_factory.h to /usr/local/common/include/seda
-Install seda/event_dispatcher.h to /usr/local/common/include/seda
-Install seda/example_stage.h to /usr/local/common/include/seda
-Install seda/init.h to /usr/local/common/include/seda
-Install seda/kill_thread.h to /usr/local/common/include/seda
-Install seda/metrics_report_event.h to /usr/local/common/include/seda
-Install seda/metrics_stage.h to /usr/local/common/include/seda
-Install seda/seda_config.h to /usr/local/common/include/seda
-Install seda/seda_defs.h to /usr/local/common/include/seda
-Install seda/stage.h to /usr/local/common/include/seda
-Install seda/stage_event.h to /usr/local/common/include/seda
-Install seda/stage_factory.h to /usr/local/common/include/seda
-Install seda/thread_pool.h to /usr/local/common/include/seda
-Install seda/timer_stage.h to /usr/local/common/include/seda
-Install time/datetime.h to /usr/local/common/include/time
-Install time/timeout_info.h to /usr/local/common/include/time
-Install version.h to /usr/local/common/include/
+CMake Error at CMakeLists.txt:71 (ADD_SUBDIRECTORY):
+  ADD_SUBDIRECTORY given source "deps" which is not an existing directory.
+
+
 Begin to build miniob
 -- This is PROJECT_BINARY_DIR dir /Users/zhouxiaolun/miniob/cmake-build-debug/src
 -- This is PROJECT_SOURCE_DIR dir /Users/zhouxiaolun/miniob/src
@@ -174,6 +82,6 @@ Begin to build test
 -- This is PROJECT_SOURCE_DIR dir /Users/zhouxiaolun/miniob/test
  -Wall -DCMAKE_EXPORT_COMPILE_COMMANDS=1  -O0 -g -DDEBUG 
 Build client_performance_test according to /Users/zhouxiaolun/miniob/test/client_performance_test.cpp
--- Configuring done
--- Generating done
--- Build files have been written to: /Users/zhouxiaolun/miniob/cmake-build-debug
+-- Configuring incomplete, errors occurred!
+See also "/Users/zhouxiaolun/miniob/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/Users/zhouxiaolun/miniob/cmake-build-debug/CMakeFiles/CMakeError.log".

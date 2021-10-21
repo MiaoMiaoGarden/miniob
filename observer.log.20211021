@@ -1410,3 +1410,15 @@ ThreadPools=SQLThre
 [2021-10-21 14:11:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.readsocket:mean:0,tps:0
 [2021-10-21 14:11:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.sql:mean:0,tps:0
 [2021-10-21 14:11:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.writesocket:mean:0,tps:0
+[2021-10-21 14:12:13 pid:15822 tid:700005ebf000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>DefaultStorageStage.query:mean:0,tps:0
+[2021-10-21 14:12:13 pid:15822 tid:700005ebf000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.readsocket:mean:0,tps:0
+[2021-10-21 14:12:13 pid:15822 tid:700005ebf000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.sql:mean:0,tps:0
+[2021-10-21 14:12:13 pid:15822 tid:700005ebf000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.writesocket:mean:0,tps:0
+[2021-10-21 14:13:13 pid:15822 tid:700005f42000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>DefaultStorageStage.query:mean:0,tps:0
+[2021-10-21 14:13:13 pid:15822 tid:700005f42000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.readsocket:mean:0,tps:0
+[2021-10-21 14:13:13 pid:15822 tid:700005f42000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.sql:mean:0,tps:0
+[2021-10-21 14:13:13 pid:15822 tid:700005f42000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.writesocket:mean:0,tps:0
+[2021-10-21 14:14:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>DefaultStorageStage.query:mean:0,tps:0
+[2021-10-21 14:14:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.readsocket:mean:0,tps:0
+[2021-10-21 14:14:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.sql:mean:0,tps:0
+[2021-10-21 14:14:13 pid:15822 tid:700005fc5000  INFO: /Users/zhouxiaolun/miniob/deps/common/metrics/log_reporter.cpp report 35]>>SessionStage.writesocket:mean:0,tps:0

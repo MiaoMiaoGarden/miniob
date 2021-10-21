@@ -71,6 +71,41 @@ RC Db::create_table(const char *table_name, int attribute_count, const AttrInfo 
   return RC::SUCCESS;
 }
 
+// tzh add here:
+RC Db::drop_table(const char *table_name){
+    RC rc = RC::SUCCESS;
+    if(opened_tables_.count(table_name)==0){
+        return RC::SCHEMA_TABLE_EXIST;
+    }
+
+    // drop index files of table
+    std::string table_file_path = table_meta_file(path_.c_str(), table_name); // .table文件路径
+    Table *table = opened_tables_[table_name];
+    rc = table->drop(table_file_path.c_str(), table_name, path_.c_str());
+    if(rc != RC::SUCCESS){
+        return rc;
+    }
+
+    // delete table structure, flush table and close files.
+    delete opened_tables_[table_name];
+    opened_tables_.erase(table_name);
+
+    // remove("name.table")
+    if(remove(table_file_path.c_str())!=0){
+        LOG_ERROR("Fail to remove file %s, due to %s.", table_name, strerror(errno));
+        return RC::IOERR_DELETE;
+    }
+    // remove("name.data")
+    std::string data_file = std::string(path_) + "/" + table_name + TABLE_DATA_SUFFIX;
+    if(remove(data_file.c_str())!=0){
+        LOG_ERROR("Fail to remove file %s, due to %s.", table_name, strerror(errno));
+        return RC::IOERR_DELETE;
+    }
+    
+    LOG_INFO("Drop table success. table name=%s", table_name);
+    return RC::SUCCESS;
+}
+
 Table *Db::find_table(const char *table_name) const {
   std::unordered_map<std::string, Table *>::const_iterator iter = opened_tables_.find(table_name);
   if (iter != opened_tables_.end()) {
