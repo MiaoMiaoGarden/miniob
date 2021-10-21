@@ -23,6 +23,7 @@ See the Mulan PSL v2 for more details. */
 #include <time.h>
 
 #include <vector>
+#include <list>
 
 #include "rc.h"
 
@@ -97,11 +98,33 @@ public:
   }
 
   Frame *alloc() {
-    return nullptr; // TODO for test
+    for (int i = 0; i < size; i++) {
+      if (!allocated[i]) {
+        allocated[i] = true;
+        list_.push_front(frame + i);
+        return frame + i;
+      }
+    }
+
+    // zzm:
+    // If there are no frames available, return the last frame of list_.
+    Frame* tmp = list_.back();
+    list_.pop_back();
+    list_.push_front(tmp);
+    return tmp; // TODO for test
   }
 
   Frame *get(int file_desc, PageNum page_num) {
-    return nullptr; // TODO for test
+    Frame* tmp = nullptr;
+    for (auto iter = list_.begin(); iter != list_.end(); iter++) {
+      if ((*iter)->file_desc == file_desc && (*iter)->page.page_num == page_num) {
+        tmp = *iter;
+        list_.erase(iter);
+        list_.push_front(tmp);
+        break;
+      }
+    }
+    return tmp; // TODO for test
   }
 
   Frame *getFrame() { return frame; }
@@ -112,6 +135,9 @@ public:
   int size;
   Frame * frame = nullptr;
   bool *allocated = nullptr;
+
+private:
+  std::list<Frame*> list_;
 };
 
 class DiskBufferPool {
