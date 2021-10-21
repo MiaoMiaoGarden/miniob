@@ -633,14 +633,22 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
         new_record.data = new_record_data;
         new_record.rid = rid;
         
+        rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
+        if (rc != RC::SUCCESS) {
+          LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
+          break;
+        }
+        rc = insert_entry_of_indexes(new_record.data, rid);
+        if (rc != RC::SUCCESS) {
+          LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
+          break;
+        }
+
         // update
         rc = record_handler_->update_record(&new_record);
-        
-        rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
-        rc = insert_entry_of_indexes(new_record.data, rid);
 
         if (rc != RC::SUCCESS) {
-          LOG_TRACE("Record reader break the table scanning. rc=%d:%s", rc, strrc(rc));
+          LOG_TRACE("Record reader break the table scanning3. rc=%d:%s", rc, strrc(rc));
           break;
         }
       }
@@ -674,7 +682,18 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
           new_record.data = new_record_data;
           new_record.rid = record.rid;
           
-          // update
+
+          rc = delete_entry_of_indexes(record.data, record.rid, false);  // if not exist this index, don't return err
+          if (rc != RC::SUCCESS) {
+            LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
+            break;
+          }
+          rc = insert_entry_of_indexes(new_record.data, record.rid);
+          if (rc != RC::SUCCESS) {
+            LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
+            break;
+          }
+           // update
           rc = record_handler_->update_record(&new_record);
 
           if (rc != RC::SUCCESS) {
