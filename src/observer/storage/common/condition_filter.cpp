@@ -173,6 +173,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
           int l_year = atoi(left[0].c_str()), r_year = atoi(right[0].c_str());
           if (l_year != r_year) {
               cmp_result = l_year - r_year;
+              break;
           }
           int l_month = atoi(left[1].c_str()), r_month = atoi(right[1].c_str());
           if (l_month != r_month) {

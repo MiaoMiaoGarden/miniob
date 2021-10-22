@@ -103,7 +103,7 @@ private:
   RecordFileHandler *     record_handler_;   /// 记录操作
   std::vector<Index *>    indexes_;
 
-    static bool isValidDate(const char *date);
+    static bool isValidDate(char *date);
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_TABLE_H__
