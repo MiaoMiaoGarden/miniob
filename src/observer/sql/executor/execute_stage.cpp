@@ -304,7 +304,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
   if (nullptr == table) {
     LOG_WARN("No such table [%s] in db [%s]", table_name, db);
     // snprintf(response, sizeof(response), "Table '%s' dosen't exist\n", table_name);
-    snprintf(response, sizeof(response), "failure\n");
+    snprintf(response, sizeof(response), "FAILURE\n");
     session_event->set_response(response);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
@@ -322,7 +322,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
         if (rc != RC::SUCCESS) {
           if (rc == RC::SCHEMA_FIELD_MISSING) {
           //  snprintf(response, sizeof(response), "Unknown column '%s' in 'field list'\n", attr.attribute_name);
-            snprintf(response, sizeof(response), "failure\n");
+            snprintf(response, sizeof(response), "FAILURE\n");
             session_event->set_response(response);
           }
           return rc;
@@ -346,7 +346,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
       if (rc != RC::SUCCESS) {
         if (rc == RC::SCHEMA_FIELD_MISSING) {
           // snprintf(response, sizeof(response), "Unknown column in 'clause'\n");
-          snprintf(response, sizeof(response), "failure\n");
+          snprintf(response, sizeof(response), "FAILURE\n");
           session_event->set_response(response);
         }
         delete condition_filter;
