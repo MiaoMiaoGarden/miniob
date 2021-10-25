@@ -7,7 +7,7 @@ struct ParserContext;
 #include "yacc_sql.tab.h"
 extern int atoi();
 extern double atof();
-
+#define YYDEBUG 1
 #if YYDEBUG > 0
 #define debug_printf  printf
 #else
@@ -29,7 +29,7 @@ ID               [A-Za-z_]+[A-Za-z0-9_]*
 DOT              \.
 QUOTE            [\'\"]
 %x STR
-
+/*DATE            [0-9]{4}+[0-9}{2}+[0-9]{2}*/
 %%
 
 {WHITE_SAPCE}                           // ignore whitespace
@@ -68,10 +68,12 @@ QUOTE            [\'\"]
 [Ii][Nn][Tt]					                   RETURN_TOKEN(INT_T);
 [Cc][Hh][Aa][Rr]				                 RETURN_TOKEN(STRING_T);
 [Ff][Ll][Oo][Aa][Tt]			               RETURN_TOKEN(FLOAT_T);
+[Dd][Aa][Tt][Ee]			               RETURN_TOKEN(DATE_T);
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
+{QUOTE}[0-9]?[0-9]?[0-9]?[0-9]-[0-9]?[0-9]-[0-9]?[0-9]{QUOTE}                                   yylval->string=strdup(yytext); RETURN_TOKEN(DATE);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);
 
@@ -82,8 +84,8 @@ QUOTE            [\'\"]
 "<"                                      RETURN_TOKEN(LT);
 ">="                                     RETURN_TOKEN(GE);
 ">"                                      RETURN_TOKEN(GT);
-{QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 
+{QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 .						                             printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%
 

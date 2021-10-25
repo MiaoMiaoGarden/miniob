@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <stddef.h>
+#include <sstream>
 #include "condition_filter.h"
 #include "record_manager.h"
 #include "common/log/log.h"
@@ -40,7 +41,7 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > FLOATS) {
+  if (attr_type < CHARS || attr_type > DATES) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
@@ -122,7 +123,15 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
   return init(left, right, type_left, condition.comp);
 }
-
+std::vector<std::string> split_(const std::string &s, char delim) {
+    std::stringstream ss(s);
+    std::string item;
+    std::vector<std::string> elems;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
+    }
+    return elems;
+}
 bool DefaultConditionFilter::filter(const Record &rec) const
 {
   char *left_value = nullptr;
@@ -158,6 +167,23 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       float right = *(float *)right_value;
       cmp_result = (int)(left - right);
     } break;
+    case DATES: {
+          std::vector<std::string> left = split_((char *) left_value, '-');
+          std::vector<std::string> right = split_((char *) right_value, '-');
+          int l_year = atoi(left[0].c_str()), r_year = atoi(right[0].c_str());
+          if (l_year != r_year) {
+              cmp_result = l_year - r_year;
+              break;
+          }
+          int l_month = atoi(left[1].c_str()), r_month = atoi(right[1].c_str());
+          if (l_month != r_month) {
+              cmp_result = l_month - r_month;
+          } else {
+              int l_day = atoi(left[2].c_str()), r_day = atoi(right[2].c_str());
+              cmp_result = l_day - r_day;
+          }
+      }
+          break;
     default: {
     }
   }

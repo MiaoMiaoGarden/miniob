@@ -18,6 +18,8 @@ typedef struct ParserContext {
   size_t value_length;
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
+  size_t multi_insert_lines;
+  extraValues extraValue[MAX_NUM];
   CompOp comp;
 	char id[MAX_NUM];
 } ParserContext;
@@ -83,6 +85,7 @@ ParserContext *get_context(yyscan_t scanner)
         INT_T
         STRING_T
         FLOAT_T
+        DATE_T
         HELP
         EXIT
         DOT //QUOTE
@@ -110,7 +113,8 @@ ParserContext *get_context(yyscan_t scanner)
   char *string;
   int number;
   float floats;
-	char *position;
+    char *position;
+
 }
 
 %token <number> NUMBER
@@ -120,6 +124,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
+%token <string> DATE
 //非终结符
 
 %type <number> type;
@@ -260,6 +265,7 @@ attr_def:
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length=4; // default attribute length
 			CONTEXT->value_length++;
 		}
+
     ;
 number:
 		NUMBER {$$ = $1;}
@@ -268,6 +274,7 @@ type:
 	INT_T { $$=INTS; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
+       | DATE_T { $$=DATES; }
        ;
 ID_get:
 	ID 
@@ -279,7 +286,7 @@ ID_get:
 
 	
 insert:				/*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
+    INSERT INTO ID VALUES LBRACE value value_list RBRACE value_opt SEMICOLON
 		{
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
@@ -289,29 +296,61 @@ insert:				/*insert   语句的语法解析树*/
 			// for(i = 0; i < CONTEXT->value_length; i++){
 			// 	CONTEXT->ssql->sstr.insertion.values[i] = CONTEXT->values[i];
       // }
-			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
+			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length, CONTEXT->multi_insert_lines, CONTEXT->extraValue);
 
       //临时变量清零
       CONTEXT->value_length=0;
     }
-
 value_list:
     /* empty */
-    | COMMA value value_list  { 
+    |COMMA value value_list  {
   		// CONTEXT->values[CONTEXT->value_length++] = *$2;
 	  }
     ;
+value_opt:
+    | COMMA value_opt  {
+        CONTEXT->multi_insert_lines += 1;
+    }
+    LBRACE value value_list RBRACE value_opt {
+    }
 value:
-    NUMBER{	
-  		value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
+    NUMBER{
+        if (CONTEXT->multi_insert_lines == 0) {
+
+  		    value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
+		} else {
+		    size_t line = CONTEXT->multi_insert_lines - 1;
+		    value_init_integer(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++], $1);
+		}
 		}
     |FLOAT{
-  		value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
+        if (CONTEXT->multi_insert_lines == 0) {
+
+  		    value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
+		} else {
+            int line = CONTEXT->multi_insert_lines - 1;
+            value_init_float(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++], $1);
+		}
 		}
     |SSS {
 			$1 = substr($1,1,strlen($1)-2);
-  		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+		if (CONTEXT->multi_insert_lines == 0)  {
+
+  	    	value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+		} else {
+		    int line = CONTEXT->multi_insert_lines - 1;
+		    value_init_string(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++], $1);
 		}
+		}
+	|DATE {
+	    $1 = substr($1,1,strlen($1) - 2);
+	    if (CONTEXT->multi_insert_lines == 0) {
+            value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1);
+        } else {
+            int line = CONTEXT->multi_insert_lines - 1;
+            value_init_date(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++], $1);
+	    }
+	    }
     ;
     
 delete:		/*  delete 语句的语法解析树*/

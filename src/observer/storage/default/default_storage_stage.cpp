@@ -41,6 +41,7 @@ const std::string DefaultStorageStage::QUERY_METRIC_TAG = "DefaultStorageStage.q
 const char * CONF_BASE_DIR = "BaseDir";
 const char * CONF_SYSTEM_DB = "SystemDb";
 
+
 const char * DEFAULT_SYSTEM_DB = "sys";
 
 //! Constructor
@@ -164,7 +165,7 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
   case SCF_INSERT: { // insert into
       const Inserts &inserts = sql->sstr.insertion;
       const char *table_name = inserts.relation_name;
-      rc = handler_->insert_record(current_trx, current_db, table_name, inserts.value_num, inserts.values);
+      rc = handler_->insert_record(current_trx, current_db, table_name, &inserts);
       snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
     }
     break;
@@ -244,6 +245,16 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
       snprintf(response, sizeof(response), "%s", result.c_str());
     }
     break;
+
+    // tzh add here:
+  case SCF_DROP_TABLE: {
+          //   RC drop_table(const char *dbname, const char *relation_name);
+        const char *table_name = sql->sstr.drop_table.relation_name;  // storage_event->execution_plan_event->parse_defs
+        rc = handler_->drop_table(current_db, table_name);
+        snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+    }
+    break;
+
   default:
       snprintf(response, sizeof(response), "Unsupported sql: %d\n", sql->flag);
       break;

@@ -26,6 +26,7 @@ struct RID;
 class Index;
 class IndexScanner;
 class RecordDeleter;
+// class RecordUpdater;
 class Trx;
 
 class Table {
@@ -42,6 +43,7 @@ public:
    * @param attributes 字段
    */
   RC create(const char *path, const char *name, const char *base_dir, int attribute_count, const AttrInfo attributes[]);
+  RC drop(const char *path, const char *name, const char *base_dir);
 
   /**
    * 打开一个表
@@ -100,6 +102,8 @@ private:
   int                     file_id_;
   RecordFileHandler *     record_handler_;   /// 记录操作
   std::vector<Index *>    indexes_;
+
+    static bool isValidDate(char *date);
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_TABLE_H__
