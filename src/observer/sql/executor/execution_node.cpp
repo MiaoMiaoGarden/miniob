@@ -50,8 +50,5 @@ RC SelectExeNode::execute(TupleSet &tuple_set) {
   }
   TupleRecordConverter converter(table_, tuple_set);
 
-  // aggre select will go with aggre select
-  bool isaggre = tuple_schema_.field(0).isaggre;
-  AggreType aggre_type = tuple_schema_.field(0).aggre_type;
-  return table_->scan_record(trx_, &condition_filter, -1, (void *)&converter, record_reader, isaggre, aggre_type);
+  return table_->scan_record(trx_, &condition_filter, -1, (void *)&converter, record_reader);
 }

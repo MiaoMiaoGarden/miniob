@@ -56,7 +56,6 @@ public:
   RC update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count);
   RC delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count);
 
-  RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context),bool isaggre,AggreType aggre_type);
   RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context));
 
   RC create_index(Trx *trx, const char *index_name, const char *attribute_name);
@@ -75,7 +74,7 @@ public:
   RC rollback_delete(Trx *trx, const RID &rid);
 
 private:
-  RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context),bool isaggre,AggreType aggre_type);
+  RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context));
   RC scan_record_by_index(Trx *trx, IndexScanner *scanner, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context));
   IndexScanner *find_index_for_scan(const ConditionFilter *filter);
   IndexScanner *find_index_for_scan(const DefaultConditionFilter &filter);

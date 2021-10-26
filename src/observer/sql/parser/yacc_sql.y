@@ -455,7 +455,7 @@ select_attr:
 	    }
     | ID DOT STAR attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, $1, "*");
+			relation_attr_init(&attr, $1, "*", 0, -1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
     }
     ;

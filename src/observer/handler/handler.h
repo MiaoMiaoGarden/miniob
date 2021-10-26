@@ -25,11 +25,13 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 
 #include "rc.h"
-
+typedef enum {COUNT,MIN,MAX,AVG} AggreType;
 //属性结构体
 typedef struct {
   char *relName;  // relation name (may be NULL) 表名
   char *attrName; // attribute name              属性名
+  bool is_aggre;
+  AggreType aggre_type;
 } RelAttr;
 
 typedef enum {

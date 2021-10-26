@@ -12,10 +12,9 @@ See the Mulan PSL v2 for more details. */
 // Created by Longda on 2021/4/13.
 //
 
-#include <ostream>
 #include <string>
 #include <sstream>
-#include <vector>
+#include <cmath>
 
 #include "execute_stage.h"
 
@@ -39,8 +38,6 @@ using namespace common;
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node, SessionEvent *session_event);
 
-void cross_join(std::vector<TupleSet> &tuple_sets, std::vector<const Condition*> conditions, TupleSet& tuple_set);
-void do_cross_join(std::vector<TupleSet> &tuple_sets, int index, std::vector<const Condition*> conditions, TupleSet &tuple_set, Tuple &tuple);
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
 
@@ -385,26 +382,17 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       if(aggre_selection){
         aggred_tupleset.add(std::move(aggred_tuple));
         tuple_sets.push_back(std::move(aggred_tupleset));
-      } else if (tuple_set.schema().fields().size() != 0) {
+      } else {
         tuple_sets.push_back(std::move(tuple_set));
       }
     }
   }
 
   std::stringstream ss;
-  if (select_nodes.size() > 1) {
-    std::vector<const Condition*> conditions;
-    for (size_t i = 0; i < selects.condition_num; i++) {
-      const Condition &condition = selects.conditions[i];
-      if (condition.left_is_attr == 1 && condition.right_is_attr == 1 && 
-          0 != strcmp(condition.left_attr.relation_name, condition.right_attr.relation_name)) {
-        conditions.push_back(&condition);
-      }
-    }
-    TupleSet tuple_set;
-    cross_join(tuple_sets, conditions, tuple_set);
-    tuple_set.print_with_tablename(ss);
+  if (tuple_sets.size() > 1) {
+    // 本次查询了多张表，需要做join操作
   } else {
+    // 当前只查询一张表，直接返回结果即可
     tuple_sets.front().print(ss);
   }
 
@@ -444,6 +432,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
   char response[256];
   if (nullptr == table) {
     LOG_WARN("No such table [%s] in db [%s]", table_name, db);
+    // snprintf(response, sizeof(response), "Table '%s' dosen't exist\n", table_name);
     snprintf(response, sizeof(response), "FAILURE\n");
     session_event->set_response(response);
     return RC::SCHEMA_TABLE_NOT_EXIST;
@@ -461,6 +450,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
         RC rc = schema_add_field(table, attr.attribute_name, schema, attr.is_aggre, attr.aggre_type);
         if (rc != RC::SUCCESS) {
           if (rc == RC::SCHEMA_FIELD_MISSING) {
+          //  snprintf(response, sizeof(response), "Unknown column '%s' in 'field list'\n", attr.attribute_name);
             snprintf(response, sizeof(response), "FAILURE\n");
             session_event->set_response(response);
           }
@@ -484,6 +474,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
       RC rc = condition_filter->init(*table, condition);
       if (rc != RC::SUCCESS) {
         if (rc == RC::SCHEMA_FIELD_MISSING) {
+          // snprintf(response, sizeof(response), "Unknown column in 'clause'\n");
           snprintf(response, sizeof(response), "FAILURE\n");
           session_event->set_response(response);
         }
@@ -499,51 +490,3 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
-
-void cross_join(std::vector<TupleSet> &tuple_sets, std::vector<const Condition*> conditions, TupleSet& tuple_set) {
-  TupleSchema tuple_schema;
-  for (auto &tuple_set1 : tuple_sets) {
-    tuple_schema.append(tuple_set1.schema());
-  }
-  tuple_set.set_schema(tuple_schema);
-
-  Tuple tuple;
-  do_cross_join(tuple_sets, 0, conditions, tuple_set, tuple);
-}
-
-void do_cross_join(std::vector<TupleSet> &tuple_sets, int index, std::vector<const Condition*> conditions, TupleSet &tuple_set, Tuple &tuple) {
-  int size = tuple_sets.size();
-  if (index == size) {
-    for (auto &condition : conditions) {
-      char* left_table = condition->left_attr.relation_name;
-      char* left_attr = condition->left_attr.attribute_name;
-      char* right_table = condition->right_attr.relation_name;
-      char* right_attr = condition->right_attr.attribute_name;
-      int i = tuple_set.get_schema().index_of_field(left_table, left_attr);
-      int j = tuple_set.get_schema().index_of_field(right_table, right_attr);
-
-      int result = tuple.get(i).compare(tuple.get(j));
-      if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL || condition->comp == CompOp::LESS_EQUAL)) ||
-          (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
-          (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
-        continue;
-      }
-      return;
-    }
-    tuple_set.add(std::move(tuple));
-    return;
-  }
-
-  const TupleSet &tuple_set1 = tuple_sets[index];
-  for (auto &tuple1 : tuple_set1.tuples()) {
-    Tuple tuple2;
-    for (auto &value : tuple.values()) {
-      tuple2.add(value);
-    }
-    for (auto &value : tuple1.values()) {
-      tuple2.add(value);
-    }
-    do_cross_join(tuple_sets, index + 1, conditions, tuple_set, tuple2);
-  }
-}
-
