@@ -22,13 +22,29 @@ RC parse(char *st, Query *sqln);
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
-void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
+void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name,int isaggre,int aggre_type) {
     if (relation_name != nullptr) {
         relation_attr->relation_name = strdup(relation_name);
     } else {
         relation_attr->relation_name = nullptr;
     }
     relation_attr->attribute_name = strdup(attribute_name);
+    if(isaggre==1){
+        relation_attr->is_aggre = true;
+        if(aggre_type==0){
+            relation_attr->aggre_type = COUNT;
+        } else  if(aggre_type==1){
+            relation_attr->aggre_type = MIN;
+        } else  if(aggre_type==2){
+            relation_attr->aggre_type = MAX;
+        } else  if(aggre_type==3){
+            relation_attr->aggre_type = AVG;
+        }
+    } else {
+        relation_attr->is_aggre = false;
+        relation_attr->aggre_type = COUNT;
+    }
+    
 }
 
 void relation_attr_destroy(RelAttr *relation_attr) {

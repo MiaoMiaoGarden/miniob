@@ -385,18 +385,12 @@ static RC scan_record_reader_adapter(Record *record, void *context) {
     return RC::SUCCESS;
 }
 
-
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context),bool isaggre,AggreType aggre_type) {
-  RecordReaderScanAdapter adapter(record_reader, context);
-  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter, isaggre, aggre_type);
-}
-
 RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context)) {
   RecordReaderScanAdapter adapter(record_reader, context);
-  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter, false, COUNT);
+  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter);
 }
 
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context),bool isaggre,AggreType aggre_type) {
+RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context)) {
   if (nullptr == record_reader) {
     return RC::INVALID_ARGUMENT;
   }
@@ -546,7 +540,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
 
   // 遍历当前的所有数据，插入这个索引
   IndexInserter index_inserter(index);
-  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter, false,COUNT);
+  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
   if (rc != RC::SUCCESS) {
     // rollback
     delete index;
@@ -554,48 +548,6 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     return rc;
   }
   indexes_.push_back(index);
-/*
-    if (index_name == nullptr || common::is_blank(index_name) ||
-        attribute_name == nullptr || common::is_blank(attribute_name)) {
-        return RC::INVALID_ARGUMENT;
-    }
-    if (table_meta_.index(index_name) != nullptr ||
-        table_meta_.find_index_by_field((attribute_name))) {
-        return RC::SCHEMA_INDEX_EXIST;
-    }*/
-
-    const FieldMeta *field_meta = table_meta_.field(attribute_name);
-    if (!field_meta) {
-        return RC::SCHEMA_FIELD_MISSING;
-    }
-
-    IndexMeta new_index_meta;
-    RC rc = new_index_meta.init(index_name, *field_meta);
-    if (rc != RC::SUCCESS) {
-        return rc;
-    }
-
-    // 创建索引相关数据
-    BplusTreeIndex *index = new BplusTreeIndex();
-    std::string index_file = index_data_file(base_dir_.c_str(), name(), index_name);
-    rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
-    if (rc != RC::SUCCESS) {
-        delete index;
-        LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
-        return rc;
-    }
-
-    // 遍历当前的所有数据，插入这个索引
-    IndexInserter index_inserter(index);
-    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
-    if (rc != RC::SUCCESS) {
-        // rollback
-        delete index;
-        LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
-        return rc;
-    }
-    indexes_.push_back(index);
-
     TableMeta new_table_meta(table_meta_);
     rc = new_table_meta.add_index(new_index_meta);
     if (rc != RC::SUCCESS) {
@@ -659,30 +611,11 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
         }
     }
 
-    // get value num of each entry, check consistency
-
-        if (rc != RC::SUCCESS) {
-          LOG_TRACE("Record reader break the table scanning3. rc=%d:%s", rc, strrc(rc));
-          break;
-        }
-      }
-      (*updated_count)++;
-    }
-    // todo: update index? 
-    index_scanner->destroy();
-  } else {   // no index, use record file scanner
-      RecordFileScanner scanner;
-      rc = scanner.open_scan(*data_buffer_pool_, file_id_, &filter);
-      if (rc != RC::SUCCESS) {
-        LOG_ERROR("failed to open scanner. file id=%d. rc=%d:%s", file_id_, rc, strrc(rc));
-        return rc;
-      }
-/*
     if (value_num <= 0 || nullptr == value ||
         table_meta_.field(attr_index + normal_field_start_index)->type() != value->type) {
         LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
         return RC::INVALID_ARGUMENT;
-    }*/
+    }
 
     // construct index_scanner
     IndexScanner *index_scanner = find_index_for_scan(&filter);
@@ -840,7 +773,7 @@ static RC record_reader_delete_adapter(Record *record, void *context) {
 
 RC Table::delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count) {
   RecordDeleter deleter(*this, trx);
-  RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter, false, COUNT);
+  RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter);
   if (deleted_count != nullptr) {
     *deleted_count = deleter.deleted_count();
   }
