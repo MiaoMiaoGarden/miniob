@@ -62,8 +62,11 @@ private:
 
 class TupleField {
 public:
+  TupleField(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType aggre_type) :
+          type_(type), table_name_(table_name), field_name_(field_name), isaggre(isaggre), aggre_type(aggre_type){
+  }
   TupleField(AttrType type, const char *table_name, const char *field_name) :
-          type_(type), table_name_(table_name), field_name_(field_name){
+          type_(type), table_name_(table_name), field_name_(field_name), isaggre(false), aggre_type(COUNT){
   }
 
   AttrType  type() const{
@@ -78,6 +81,10 @@ public:
   }
 
   std::string to_string() const;
+
+public:
+  bool isaggre;
+  AggreType aggre_type;
 private:
   AttrType  type_;
   std::string table_name_;
@@ -90,7 +97,8 @@ public:
   ~TupleSchema() = default;
 
   void add(AttrType type, const char *table_name, const char *field_name);
-  void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
+  void add(AttrType type, const char *table_name, const char *field_name,bool isaggre,AggreType aggre_type);
+  void add_if_not_exists(AttrType type, const char *table_name, const char *field_name,bool isaggre,AggreType aggre_type);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
 

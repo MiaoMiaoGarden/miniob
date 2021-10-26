@@ -50,6 +50,9 @@ public:
     }
     return 0;
   }
+  int get_value(){
+    return value_;
+  }
 
 private:
   int value_;
@@ -75,6 +78,9 @@ public:
     }
     return 0;
   }
+  float get_value(){
+    return value_;
+  }
 private:
   float value_;
 };
@@ -93,6 +99,9 @@ public:
   int compare(const TupleValue &other) const override {
     const StringValue &string_other = (const StringValue &)other;
     return strcmp(value_.c_str(), string_other.value_.c_str());
+  }
+  std::string get_value(){
+    return value_;
   }
 private:
   std::string value_;
