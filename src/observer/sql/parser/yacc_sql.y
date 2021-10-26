@@ -412,43 +412,42 @@ select_attr:
 			relation_attr_init(&attr, $1, $3, 0, -1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-
-	  | COU LBRACE ID RBRACE attr_list {
+    | COU LBRACE ID RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $3, 1, 0);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | MI LBRACE ID RBRACE attr_list {
+	| MI LBRACE ID RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $3, 1, 1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | MA LBRACE ID RBRACE attr_list {
+	| MA LBRACE ID RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $3, 1, 2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | AV LBRACE ID RBRACE attr_list {
+	| AV LBRACE ID RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $3, 1, 3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | COU LBRACE STAR RBRACE attr_list {
+	| COU LBRACE STAR RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*", 1, 0);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | MI LBRACE STAR RBRACE attr_list {
+	| MI LBRACE STAR RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*", 1, 1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | MA LBRACE STAR RBRACE attr_list {
+    | MA LBRACE STAR RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*", 1, 2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	  | AV LBRACE STAR RBRACE attr_list {
+	| AV LBRACE STAR RBRACE attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*", 1, 3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
