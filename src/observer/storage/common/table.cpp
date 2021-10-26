@@ -380,12 +380,17 @@ static RC scan_record_reader_adapter(Record *record, void *context) {
   return RC::SUCCESS;
 }
 
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context)) {
+RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context),bool isaggre,AggreType aggre_type) {
   RecordReaderScanAdapter adapter(record_reader, context);
-  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter);
+  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter, isaggre, aggre_type);
 }
 
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context)) {
+RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context)) {
+  RecordReaderScanAdapter adapter(record_reader, context);
+  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter, false, COUNT);
+}
+
+RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context),bool isaggre,AggreType aggre_type) {
   if (nullptr == record_reader) {
     return RC::INVALID_ARGUMENT;
   }
@@ -521,7 +526,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
 
   // 遍历当前的所有数据，插入这个索引
   IndexInserter index_inserter(index);
-  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
+  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter, false,COUNT);
   if (rc != RC::SUCCESS) {
     // rollback
     delete index;
@@ -664,7 +669,7 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     }
     // todo: update index? 
     index_scanner->destroy();
-  } else { // no index, use record file scanner
+  } else {   // no index, use record file scanner
       RecordFileScanner scanner;
       rc = scanner.open_scan(*data_buffer_pool_, file_id_, &filter);
       if (rc != RC::SUCCESS) {
@@ -753,7 +758,7 @@ static RC record_reader_delete_adapter(Record *record, void *context) {
 
 RC Table::delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count) {
   RecordDeleter deleter(*this, trx);
-  RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter);
+  RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter, false, COUNT);
   if (deleted_count != nullptr) {
     *deleted_count = deleter.deleted_count();
   }

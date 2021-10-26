@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <sstream>
+#include <cmath>
 
 #include "execute_stage.h"
 
@@ -255,7 +256,135 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       end_trx_if_need(session, trx, false);
       return rc;
     } else {
-      tuple_sets.push_back(std::move(tuple_set));
+      // tuple_set 是一张表上得到的所有tuple查询结果
+        TupleSet aggred_tupleset;
+        TupleSchema tuple_schema;
+        for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
+          RelAttr attr = sql->sstr.selection.attributes[i];  // todo: 0 relation
+          int schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+          AttrType attr_type= tuple_set.get_schema().field(schema_index).type();
+          if(attr_type==INTS && attr.is_aggre && attr.aggre_type==AVG){
+            attr_type = FLOATS;
+          }
+          std::string name = attr.attribute_name;
+          if(attr.is_aggre){
+            if(attr.aggre_type==COUNT){
+              name = "count("+name+")";
+            } else if(attr.aggre_type==MIN){
+              name = "min("+name+")";
+            } else if(attr.aggre_type==MAX){
+              name = "max("+name+")";
+            } else{
+              name = "avg("+name+")";
+            }
+          }
+          tuple_schema.add(attr_type, selects.relations[0], name.c_str(), attr.is_aggre, attr.aggre_type);
+        }
+        aggred_tupleset.set_schema(tuple_schema);
+
+        Tuple aggred_tuple;
+        Tuple *tuple;
+        bool aggre_selection = true;
+        // do_aggregate(tuple_sets, aggred_tupleset)
+        for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
+          RelAttr attr = sql->sstr.selection.attributes[i];
+          if(!attr.is_aggre){ 
+            aggre_selection = false;
+            break;
+          }
+          int index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+          if(attr.aggre_type==COUNT){
+            // null check here
+            aggred_tuple.add(tuple_set.size());
+          } else if(attr.aggre_type==MIN){
+            int min_index = 0;
+            for(size_t j = 0; j<tuple_set.size(); j++){
+              if(tuple_set.get(min_index).get(index).compare(tuple_set.get(j).get(index)) > 0){
+                min_index = j;
+              }
+            }
+            int t1 = 0;
+            bool flag = false;
+            for(auto  &temp1:tuple_set.tuples()){
+              int t2 = 0;
+              for(auto &value: temp1.values()){
+                if(t1==min_index && t2==index){
+                  aggred_tuple.add(value);
+                  flag = true;
+                  break;
+                }
+                t2++;
+              }
+              if(flag) break;
+              t1++;
+            }
+            // aggred_tuple.add(tuple_set.get(min_index).get(index));
+          } else if(attr.aggre_type==MAX){
+            int max_index = 0;
+            for(size_t j = 0; j<tuple_set.size(); j++){
+              if(tuple_set.get(max_index).get(index).compare(tuple_set.get(j).get(index)) < 0){
+                max_index = j;
+              }
+            }
+            int t1 = 0;
+            bool flag = false;
+            for(auto  &temp1:tuple_set.tuples()){
+              int t2 = 0;
+              for(auto &value: temp1.values()){
+                if(t1==max_index && t2==index){
+                  aggred_tuple.add(value);
+                  flag = true;
+                  break;
+                }
+                t2++;
+              }
+              if(flag) break;
+              t1++;
+            }
+          } else if(attr.aggre_type==AVG){
+            AttrType type = tuple_set.get_schema().field(index).type();
+            if(type!=FLOATS && type!=INTS){
+              return RC::GENERIC_ERROR;
+            }
+            if(type==FLOATS){
+                float sum  = 0.0;
+                for(auto &temp1:tuple_set.tuples()){
+                  int t2 = 0;
+                  for(auto &value : temp1.values()){
+                    if(t2==index){
+                        FloatValue *floatvalue = dynamic_cast<FloatValue *>(value.get());
+                        sum+=floatvalue->get_value();
+                    }
+                    t2++;
+                  }
+                }
+                float avg = round(100*sum/tuple_set.size())/100.0;
+                aggred_tuple.add(avg);
+
+            } if(type==INTS){
+                int sum = 0;
+                for(auto &temp1:tuple_set.tuples()){
+                  int t2 = 0;
+                  for(auto &value : temp1.values()){
+                    if(t2==index){
+                        IntValue *intvalue = dynamic_cast<IntValue *>(value.get());
+                        sum+=intvalue->get_value();
+                    }
+                    t2++;
+                  }
+                }
+                float avg = round(100*(float)sum/tuple_set.size())/100.0;
+                aggred_tuple.add(avg);
+            }
+          }
+          
+        }
+      if(aggre_selection){
+        aggred_tupleset.add(std::move(aggred_tuple));
+        tuple_sets.push_back(std::move(aggred_tupleset));
+      } else {
+        tuple_sets.push_back(std::move(tuple_set));
+      }
     }
   }
 
@@ -283,14 +412,14 @@ bool match_table(const Selects &selects, const char *table_name_in_condition, co
   return selects.relation_num == 1;
 }
 
-static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema) {
+static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema, bool isaggre, AggreType aggre_type) {
   const FieldMeta *field_meta = table->table_meta().field(field_name);
   if (nullptr == field_meta) {
     LOG_WARN("No such field. %s.%s", table->name(), field_name);
     return RC::SCHEMA_FIELD_MISSING;
   }
 
-  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name());
+  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name(), isaggre, aggre_type);
   return RC::SUCCESS;
 }
 
@@ -318,7 +447,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
         break; // 没有校验，给出* 之后，再写字段的错误
       } else {
         // 列出这张表相关字段
-        RC rc = schema_add_field(table, attr.attribute_name, schema);
+        RC rc = schema_add_field(table, attr.attribute_name, schema, attr.is_aggre, attr.aggre_type);
         if (rc != RC::SUCCESS) {
           if (rc == RC::SCHEMA_FIELD_MISSING) {
           //  snprintf(response, sizeof(response), "Unknown column '%s' in 'field list'\n", attr.attribute_name);
