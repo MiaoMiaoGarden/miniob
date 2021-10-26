@@ -258,13 +258,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       }
       end_trx_if_need(session, trx, false);
       return rc;
-    } else {
-      tuple_sets.push_back(std::move(tuple_set));
+    } else if (tuple_set.schema().fields().size() != 0) {
+        tuple_sets.push_back(std::move(tuple_set));
     }
   }
 
   std::stringstream ss;
-  if (tuple_sets.size() > 1) {
+  if (select_nodes.size() > 1) {
     std::vector<const Condition*> conditions;
     for (size_t i = 0; i < selects.condition_num; i++) {
       const Condition &condition = selects.conditions[i];
@@ -275,7 +275,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
     TupleSet tuple_set;
     cross_join(tuple_sets, conditions, tuple_set);
-    tuple_set.print(ss);
+    tuple_set.print_with_tablename(ss);
   } else {
     tuple_sets.front().print(ss);
   }
