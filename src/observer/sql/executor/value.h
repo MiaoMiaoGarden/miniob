@@ -41,7 +41,14 @@ public:
 
   int compare(const TupleValue &other) const override {
     const IntValue & int_other = (const IntValue &)other;
-    return value_ - int_other.value_;
+    int result = value_ - int_other.value_;
+    if (result > 0) {
+      return 1;
+    }
+    if (result < 0) {
+      return -1;
+    }
+    return 0;
   }
   int get_value(){
     return value_;

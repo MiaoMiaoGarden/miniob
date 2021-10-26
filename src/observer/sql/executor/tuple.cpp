@@ -137,6 +137,22 @@ void TupleSchema::print(std::ostream &os) const {
   os << fields_.back().field_name() << std::endl;
 }
 
+void TupleSchema::print_with_tablename(std::ostream &os) const {
+  if (fields_.empty()) {
+    os << "No schema";
+    return;
+  }
+
+  for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
+       iter != end; ++iter) {
+    os << iter->table_name() << ".";
+    os << iter->field_name() << " | ";
+  }
+
+  os << fields_.back().table_name() << ".";
+  os << fields_.back().field_name() << std::endl;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 TupleSet::TupleSet(TupleSet &&other) : tuples_(std::move(other.tuples_)), schema_(other.schema_){
   other.schema_.clear();
@@ -165,15 +181,8 @@ void TupleSet::clear() {
   schema_.clear();
 }
 
-void TupleSet::print(std::ostream &os) const {
-  if (schema_.fields().empty()) {
-    LOG_WARN("Got empty schema");
-    return;
-  }
-
-  schema_.print(os);
-
-  for (const Tuple &item : tuples_) {
+void print_tuples(std::ostream &os, const std::vector<Tuple> &tuples) {
+  for (const Tuple &item : tuples) {
     const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
     for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
           iter != end; ++iter) {
@@ -183,6 +192,26 @@ void TupleSet::print(std::ostream &os) const {
     values.back()->to_string(os);
     os << std::endl;
   }
+}
+
+void TupleSet::print_with_tablename(std::ostream &os) const {
+  if (schema_.fields().empty()) {
+    LOG_WARN("Got empty schema");
+    return;
+  }
+
+  schema_.print_with_tablename(os);
+  print_tuples(os, tuples_);
+}
+
+void TupleSet::print(std::ostream &os) const {
+  if (schema_.fields().empty()) {
+    LOG_WARN("Got empty schema");
+    return;
+  }
+
+  schema_.print(os);
+  print_tuples(os, tuples_);
 }
 
 void TupleSet::set_schema(const TupleSchema &schema) {
@@ -247,8 +276,8 @@ void TupleRecordConverter::add_record(const char *record) {
       }
     }
   }
-
-  tuple_set_.add(std::move(tuple));
+  if (tuple.size() != 0)
+    tuple_set_.add(std::move(tuple));
 }
 
 

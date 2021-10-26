@@ -116,6 +116,7 @@ public:
   }
 
   void print(std::ostream &os) const;
+  void print_with_tablename(std::ostream &os) const;
 public:
   static void from_table(const Table *table, TupleSchema &schema);
 private:
@@ -146,6 +147,7 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  void print_with_tablename(std::ostream &os) const;
 public:
   const TupleSchema &schema() const {
     return schema_;

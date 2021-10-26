@@ -45,7 +45,11 @@ RC SelectExeNode::execute(TupleSet &tuple_set) {
 
   tuple_set.clear();
   tuple_set.set_schema(tuple_schema_);
+  if (tuple_schema_.fields().size() == 0) {
+    return RC::SUCCESS;
+  }
   TupleRecordConverter converter(table_, tuple_set);
+
   // aggre select will go with aggre select
   bool isaggre = tuple_schema_.field(0).isaggre;
   AggreType aggre_type = tuple_schema_.field(0).aggre_type;
