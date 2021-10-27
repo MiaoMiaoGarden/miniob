@@ -287,18 +287,18 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if(isnumber(attr.attribute_name)){  // count(1) find the first one attr
             schema_index = 0;
           } else{
-              schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+            schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
           }
           if (schema_index < 0 || schema_index >= (int)tuple_set.get_schema().fields().size()) {
             continue;
           }
-          AttrType attr_type= tuple_set.get_schema().field(schema_index).type();
-          if(attr_type==INTS && attr.is_aggre && attr.aggre_type==AVG){
+          AttrType attr_type = tuple_set.get_schema().field(schema_index).type();
+          if(attr_type == INTS && attr.is_aggre && attr.aggre_type == AVG){
             attr_type = FLOATS;
           }
           std::string name = attr.attribute_name;
           if(attr.is_aggre){
-            if(attr.aggre_type==COUNT){
+            if(attr.aggre_type == COUNT){
               name = "count("+name+")";
             } else if(attr.aggre_type==MIN){
               name = "min("+name+")";
@@ -381,7 +381,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             if(type!=FLOATS && type!=INTS){
               return RC::GENERIC_ERROR;
             }
-            if(type==FLOATS){
+            if(type == FLOATS){
                 float sum  = 0.0;
                 for(auto &temp1:tuple_set.tuples()){
                   int t2 = 0;
@@ -396,7 +396,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
                 float avg = round(100*sum/tuple_set.size())/100.0;
                 aggred_tuple.add(avg);
 
-            } if(type==INTS){
+            } if(type == INTS){
                 int sum = 0;
                 for(auto &temp1:tuple_set.tuples()){
                   int t2 = 0;
@@ -434,6 +434,14 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       }
     }
     TupleSet tuple_set;
+    int i = 0;
+    int j = tuple_sets.size() - 1;
+    while (i < j) {
+      tuple_set = std::move(tuple_sets[i]);
+      tuple_sets[i] = std::move(tuple_sets[j]);
+      tuple_sets[j] = std::move(tuple_set);
+      i++, j--;
+    }
     cross_join(tuple_sets, conditions, tuple_set);
     tuple_set.print_with_tablename(ss);
     // 本次查询了多张表，需要做join操作

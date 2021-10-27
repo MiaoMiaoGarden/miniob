@@ -440,7 +440,7 @@ select_attr:
 			RelAttr attr;
 			relation_attr_init(&attr, $1, "*", 0, -1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-    }
+        }
     ;
 attr_list:
     /* empty */
@@ -448,7 +448,7 @@ attr_list:
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2, 0, -1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-     	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
+     	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
       }
     | COMMA ID DOT ID attr_list {
@@ -478,6 +478,11 @@ attr_list:
 			relation_attr_init(&attr, NULL, $2, 1, 3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
+    | COMMA ID DOT STAR attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, "*", 0, -1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        }
   	;
 
 rel_list:
