@@ -56,9 +56,9 @@ public:
   RC update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count);
   RC delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count);
 
-  RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context));
+  RC scan_record(Trx *trx, ConditionFilter *filter, int limit,  void *context, void (*record_reader)(const char *data, void *context));
 
-  RC create_index(Trx *trx, const char *index_name, const char *attribute_name);
+  RC create_index(Trx *trx, const char *index_name, const char *attribute_name, const int &is_unique);
 
 public:
   const char *name() const;
@@ -104,6 +104,8 @@ private:
   std::vector<Index *>    indexes_;
 
     static bool isValidDate(char *date);
+
+    bool insert_unique_conflict(const char *data);
 };
 
 #endif // __OBSERVER_STORAGE_COMMON_TABLE_H__

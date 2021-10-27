@@ -138,13 +138,12 @@ RC DefaultHandler::drop_table(const char *dbname, const char *relation_name) {
     // return RC::GENERIC_ERROR;
 }
 
-RC DefaultHandler::create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name,
-                                const char *attribute_name) {
-    Table *table = find_table(dbname, relation_name);
+RC DefaultHandler::create_index(Trx *trx, const char *dbname, const CreateIndex *createIndex) {
+    Table *table = find_table(dbname, createIndex->relation_name);
     if (nullptr == table) {
         return RC::SCHEMA_TABLE_NOT_EXIST;
     }
-    return table->create_index(trx, index_name, attribute_name);
+    return table->create_index(trx, createIndex->index_name, createIndex->attribute_name, createIndex->isUnique);
 }
 
 RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name) {
@@ -159,10 +158,12 @@ RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relat
     }
     if (inserts->multi_insert_lines != 0) {
         // follow write order
+        std::vector<std::string> conflict_record;
         RC c = table->insert_record(trx, inserts->value_num, inserts->values);
         if (c != RC::SUCCESS) {
             return c;
         }
+
         for (size_t i = 0; i < inserts->multi_insert_lines; i++) {
             RC c = table->insert_record(trx, inserts->multiValues[i].value_length, inserts->multiValues[i].values);
             if (c != RC::SUCCESS) {

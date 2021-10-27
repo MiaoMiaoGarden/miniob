@@ -207,7 +207,7 @@ enum RC {
   RANGE,         /* 2nd parameter to bind out of range */
   NOTADB,        /* File opened that is not a database file */
   NOTICE = 100,  /* Notifications from log() */
-
+  UNIQUEINDEX_CONFLICT,
   /* buffer pool part */
   BUFFERPOOL_EXIST = (BUFFERPOOL | (RCBufferPool::BP_EXIST << 8)),
   BUFFERPOOL_FILEERR = (BUFFERPOOL | (RCBufferPool::BP_FILEERR << 8)),

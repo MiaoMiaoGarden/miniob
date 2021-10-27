@@ -127,6 +127,8 @@ typedef struct {
     char *index_name;      // Index name
     char *relation_name;   // Relation name
     char *attribute_name;  // Attribute name
+    int isUnique;          // is unique index
+
 } CreateIndex;
 
 // struct of  drop_index

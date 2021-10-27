@@ -194,6 +194,7 @@ RC RecordPageHandler::update_record(const Record *rec) {
   } else {
     char *record_data = page_handle_.frame->page.data +
         page_header_->first_record_offset + (rec->rid.slot_num * page_header_->record_size);
+
     memcpy(record_data, rec->data, page_header_->record_real_size);
     ret = disk_buffer_pool_->mark_dirty(&page_handle_);
     if (ret != RC::SUCCESS) {

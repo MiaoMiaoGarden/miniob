@@ -158,7 +158,9 @@ void selects_destroy(Selects *selects) {
     selects->condition_num = 0;
 }
 
-void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num, size_t multi_insert_line, extraValues extraValue[]) {
+void
+inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num, size_t multi_insert_line,
+             extraValues extraValue[]) {
     assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
 
     inserts->relation_name = strdup(relation_name);
@@ -167,8 +169,8 @@ void inserts_init(Inserts *inserts, const char *relation_name, Value values[], s
     }
     for (size_t i = 0; i < multi_insert_line; i++) {
         inserts->multiValues[i].value_length = extraValue[i].value_length;
-        for (size_t  j = 0; j < extraValue[i].value_length; j++) {
-            inserts->multiValues[i].values[j] =  extraValue[i].values[j];
+        for (size_t j = 0; j < extraValue[i].value_length; j++) {
+            inserts->multiValues[i].values[j] = extraValue[i].values[j];
         }
     }
     inserts->value_num = value_num;

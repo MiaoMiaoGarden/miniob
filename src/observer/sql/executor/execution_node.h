@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_
 #define __OBSERVER_SQL_EXECUTOR_EXECUTION_NODE_H_
 
+
 #include <vector>
 #include "storage/common/condition_filter.h"
 #include "sql/executor/tuple.h"

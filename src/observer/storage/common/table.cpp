@@ -230,6 +230,9 @@ RC Table::insert_record(Trx *trx, Record *record) {
     if (trx != nullptr) {
         trx->init_trx_info(this, *record);
     }
+    if (insert_unique_conflict(record->data)) {
+        return RC::CONSTRAINT_UNIQUE;
+    }
     rc = record_handler_->insert_record(record->data, table_meta_.record_size(), &record->rid);
     if (rc != RC::SUCCESS) {
         LOG_ERROR("Insert record failed. table name=%s, rc=%d:%s", table_meta_.name(), rc, strrc(rc));
@@ -257,6 +260,7 @@ RC Table::insert_record(Trx *trx, Record *record) {
             LOG_PANIC("Failed to rollback index data when insert index entries failed. table name=%s, rc=%d:%s",
                       name(), rc2, strrc(rc2));
         }
+
         rc2 = record_handler_->delete_record(&record->rid);
         if (rc2 != RC::SUCCESS) {
             LOG_PANIC("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
@@ -291,6 +295,23 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values) {
 const char *Table::name() const {
     return table_meta_.name();
 }
+
+class IndexInserter {
+public:
+    explicit IndexInserter(Index *index) : index_(index) {
+    }
+
+    RC insert_index(const Record *record) {
+        return index_->insert_entry(record->data, &record->rid);
+    }
+
+    Index *get_index() {
+        return index_;
+    }
+
+private:
+    Index *index_;
+};
 
 const TableMeta &Table::table_meta() const {
     return table_meta_;
@@ -488,25 +509,15 @@ RC Table::scan_record_by_index(Trx *trx, IndexScanner *scanner, ConditionFilter 
     return rc;
 }
 
-class IndexInserter {
-public:
-    explicit IndexInserter(Index *index) : index_(index) {
-    }
-
-    RC insert_index(const Record *record) {
-        return index_->insert_entry(record->data, &record->rid);
-    }
-
-private:
-    Index *index_;
-};
 
 static RC insert_index_record_reader_adapter(Record *record, void *context) {
     IndexInserter &inserter = *(IndexInserter *) context;
+
     return inserter.insert_index(record);
 }
 
-RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name) {
+RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name, const int &is_unique) {
+
 
   if (index_name == nullptr || common::is_blank(index_name) ||
       attribute_name == nullptr || common::is_blank(attribute_name)) {
@@ -523,7 +534,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   }
 
   IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, *field_meta);
+  RC rc = new_index_meta.init(index_name, *field_meta, is_unique);
   if (rc != RC::SUCCESS) {
     return rc;
   }
@@ -581,6 +592,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     table_meta_.swap(new_table_meta);
 
     LOG_INFO("add a new index (%s) on the table (%s)", index_name, name());
+
 
     return rc;
 }
@@ -968,7 +980,7 @@ bool Table::isValidDate(char *date) {
         std::string str = dates[0];
         int diff = year_len - dates[0].size();
         for (int i = 0; i < diff; i++) {
-             str  = "0" + str;
+            str = "0" + str;
         }
         memmove(date + diff, date, strlen(date) + diff);
         for (int i = 0; i < diff; i++) {
@@ -979,7 +991,7 @@ bool Table::isValidDate(char *date) {
         std::string str = dates[1];
         int diff = month_len - dates[1].size();
         for (int i = 0; i < diff; i++) {
-            str  = "0" + str;
+            str = "0" + str;
         }
         memmove(date + diff + year_len + 1, date + year_len + 1, strlen(date) + diff);
         for (int i = 0; i < month_len; i++) {
@@ -990,7 +1002,7 @@ bool Table::isValidDate(char *date) {
         std::string str = dates[2];
         int diff = 2 - dates[2].size();
         for (int i = 0; i < diff; i++) {
-            str  = "0" + str;
+            str = "0" + str;
         }
         memmove(date + diff + 8, date + 8, strlen(date) + diff);
         for (int i = 0; i < 2; i++) {
@@ -1005,6 +1017,10 @@ bool Table::isValidDate(char *date) {
     }
     int month = atoi(dates[1].c_str());
     int day = atoi(dates[2].c_str());
+    if (year == 2038 && month > 2) {
+        LOG_ERROR("if year == 2038, month is should not bigger than 2");
+        return false;
+    }
     if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 11 || month == 12) {
         if (day <= 0 || day > 31) {
             LOG_ERROR("%d month has %d day is should not bigger than 31 or smaller than 0", month, day);
@@ -1024,4 +1040,16 @@ bool Table::isValidDate(char *date) {
         }
     }
     return true;
+}
+
+bool Table::insert_unique_conflict(const char *record) {
+    for (const auto index : indexes_) {
+        if (index->index_meta().unique()) {
+            std::string key = record + index->field_meta().offset();
+            if (index->unique_conflict(key)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

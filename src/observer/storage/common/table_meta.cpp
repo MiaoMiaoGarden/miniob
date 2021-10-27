@@ -266,7 +266,7 @@ int TableMeta::deserialize(std::istream &is) {
       IndexMeta &index = indexes[i];
 
       const Json::Value &index_value = indexes_value[i];
-      rc = IndexMeta::from_json(*this, index_value, index);
+      rc = IndexMeta::from_json(*this, index_value,  index);
       if (rc != RC::SUCCESS) {
         LOG_ERROR("Failed to deserialize table meta. table name=%s", table_name.c_str());
         return -1;
