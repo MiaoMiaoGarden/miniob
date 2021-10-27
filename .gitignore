@@ -3,4 +3,5 @@ compile_commands.json
 miniob
 .cache
 .DS_Store
+src/.DS_Store
 observer.log.*
