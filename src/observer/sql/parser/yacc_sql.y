@@ -124,6 +124,10 @@ ParserContext *get_context(yyscan_t scanner)
 %token <number> NUMBER
 %token <floats> FLOAT 
 %token <string> ID
+%token <string> TOCOUNT
+%token <string> TOMAX
+%token <string> TOMIN
+%token <string> TOAVG
 %token <string> PATH
 %token <string> SSS
 %token <string> STAR
@@ -412,44 +416,24 @@ select_attr:
 			relation_attr_init(&attr, $1, $3, 0, -1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | COU LBRACE ID RBRACE attr_list {
+    | TOCOUNT attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $3, 1, 0);
+			relation_attr_init(&attr, NULL, $1, 1, 0);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	| MI LBRACE ID RBRACE attr_list {
+	| TOMIN attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $3, 1, 1);
+			relation_attr_init(&attr, NULL, $1, 1, 1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	| MA LBRACE ID RBRACE attr_list {
+	| TOMAX attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $3, 1, 2);
+			relation_attr_init(&attr, NULL, $1, 1, 2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	| AV LBRACE ID RBRACE attr_list {
+	| TOAVG attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $3, 1, 3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COU LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 0);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| MI LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-    | MA LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| AV LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 3);
+			relation_attr_init(&attr, NULL, $1, 1, 3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
     | ID DOT STAR attr_list {
@@ -474,44 +458,24 @@ attr_list:
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
-	| COMMA COU LBRACE ID RBRACE attr_list {
+	| COMMA TOCOUNT attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $4, 1, 0);
+			relation_attr_init(&attr, NULL,$2, 1, 0);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	| COMMA MI LBRACE ID RBRACE attr_list {
+	| COMMA TOMIN attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $4, 1, 1);
+			relation_attr_init(&attr, NULL, $2, 1, 1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	| COMMA MA LBRACE ID RBRACE attr_list {
+	| COMMA TOMAX attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $4, 1, 2);
+			relation_attr_init(&attr, NULL, $2, 1, 2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
-	| COMMA AV LBRACE ID RBRACE attr_list {
+	| COMMA TOAVG attr_list {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $4, 1, 3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA COU LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 0);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA MI LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA MA LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA AV LBRACE STAR RBRACE attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 1, 3);
+			relation_attr_init(&attr, NULL, $2, 1, 3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 	    }
   	;

@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.7.2.  */
+/* A Bison parser, made by GNU Bison 3.7.5.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -103,11 +103,15 @@ extern int yydebug;
     NUMBER = 304,                  /* NUMBER  */
     FLOAT = 305,                   /* FLOAT  */
     ID = 306,                      /* ID  */
-    PATH = 307,                    /* PATH  */
-    SSS = 308,                     /* SSS  */
-    STAR = 309,                    /* STAR  */
-    STRING_V = 310,                /* STRING_V  */
-    DATE = 311                     /* DATE  */
+    TOCOUNT = 307,                 /* TOCOUNT  */
+    TOMAX = 308,                   /* TOMAX  */
+    TOMIN = 309,                   /* TOMIN  */
+    TOAVG = 310,                   /* TOAVG  */
+    PATH = 311,                    /* PATH  */
+    SSS = 312,                     /* SSS  */
+    STAR = 313,                    /* STAR  */
+    STRING_V = 314,                /* STRING_V  */
+    DATE = 315                     /* DATE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -127,7 +131,7 @@ union YYSTYPE
     char *position;
 
 
-#line 131 "yacc_sql.tab.h"
+#line 135 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
