@@ -28,7 +28,23 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
     } else {
         relation_attr->relation_name = nullptr;
     }
-    relation_attr->attribute_name = strdup(attribute_name);
+    char attr_name[100];
+    int j = 0;
+    for(int i = 0; i<strlen(attribute_name); i++){
+        if(isaggre && i==0){
+            if(aggre_type==0){  // COUNT{
+                i+=5;
+            } else {
+                i+=3;
+            }
+        }
+        if(attribute_name[i]=='(' || attribute_name[i]==')' || attribute_name[i]==' '){
+            continue;
+        }
+        attr_name[j++] = attribute_name[i];
+    }
+    attr_name[j] = '\0';
+    relation_attr->attribute_name = strdup(attr_name);
     if(isaggre==1){
         relation_attr->is_aggre = true;
         if(aggre_type==0){

@@ -24,7 +24,11 @@ extern double atof();
 
 WHITE_SAPCE      [\ \t\b\f]
 DIGIT            [0-9]+
-
+COU              [Cc][Oo][Uu][Nn][Tt]
+MA               [Mm][Aa][Xx] 
+MI               [Mm][Ii][Nn]
+AV               [Aa][Vv][Gg]
+TOAGGRE          [\(][A-Za-z0-9_*\-\+\ \,\.]*[\)]
 ID               [A-Za-z_]+[A-Za-z0-9_]*
 DOT              \.
 QUOTE            [\'\"]
@@ -72,11 +76,12 @@ QUOTE            [\'\"]
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
-[Cc][Oo][Uu][Nn][Tt]        RETURN_TOKEN(COU);
-[Mm][Aa][Xx]                RETURN_TOKEN(MA);
-[Mm][Ii][Nn]                RETURN_TOKEN(MI);
-[Aa][Vv][Gg]                RETURN_TOKEN(AV);
+
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
+{COU}{TOAGGRE}                                yylval->string=strdup(yytext); RETURN_TOKEN(TOCOUNT);
+{MA}{TOAGGRE}                                        yylval->string=strdup(yytext); RETURN_TOKEN(TOMAX);
+{MI}{TOAGGRE}                                          yylval->string=strdup(yytext); RETURN_TOKEN(TOMIN);
+{AV}{TOAGGRE}                                          yylval->string=strdup(yytext); RETURN_TOKEN(TOAVG);
 {QUOTE}[0-9]?[0-9]?[0-9]?[0-9]-[0-9]?[0-9]-[0-9]?[0-9]{QUOTE}                                   yylval->string=strdup(yytext); RETURN_TOKEN(DATE);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);

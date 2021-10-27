@@ -217,6 +217,25 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right) {
   }
 }
 
+
+bool isnumber(const char *attr){
+  if(!('0'<=attr[0] && attr[0]<='9') && attr[0]!='-' && attr[0]!='+'){
+    return false;
+  }
+  int length = strlen(attr);
+  for(int i = 1; i<length; i++){
+    if('0'<=attr[0] && attr[0]<='9' || attr[i]=='.'){
+      if(i==length-1){
+        return true;
+      }
+      continue;
+    } else{
+      return false;
+    }
+  }
+}
+
+
 // 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
 // 需要补充上这一部分. 校验部分也可以放在resolve，不过跟execution放一起也没有关系
 RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_event) {
@@ -263,8 +282,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         TupleSet aggred_tupleset;
         TupleSchema tuple_schema;
         for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
-          RelAttr attr = sql->sstr.selection.attributes[i];  // todo: 0 relation
-          int schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+          RelAttr attr = sql->sstr.selection.attributes[ sql->sstr.selection.attr_num-1-i];  // todo: 0 relation
+          int schema_index = 0;
+          if(isnumber(attr.attribute_name)){  // count(1) find the first one attr
+            schema_index = 0;
+          } else{
+              schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+          }
           if (schema_index < 0 || schema_index >= (int)tuple_set.get_schema().fields().size()) {
             continue;
           }
@@ -293,12 +317,17 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         bool aggre_selection = true;
         // do_aggregate(tuple_sets, aggred_tupleset)
         for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
-          RelAttr attr = sql->sstr.selection.attributes[i];
+          RelAttr attr = sql->sstr.selection.attributes[ sql->sstr.selection.attr_num-1-i];
           if(!attr.is_aggre){ 
             aggre_selection = false;
             break;
           }
-          int index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+          int index = 0;
+          if(isnumber(attr.attribute_name)){
+           index = 0;
+           } else{
+             index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+          }
           if(attr.aggre_type==COUNT){
             // null check here
             aggred_tuple.add(tuple_set.size());
@@ -458,7 +487,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
   for (int i = selects.attr_num - 1; i >= 0; i--) {
     const RelAttr &attr = selects.attributes[i];
     if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
-      if (0 == strcmp("*", attr.attribute_name)) {
+      if (0 == strcmp("*", attr.attribute_name) || isnumber(attr.attribute_name)) {
         // 列出这张表所有字段
         TupleSchema::from_table(table, schema);
         break; // 没有校验，给出* 之后，再写字段的错误
