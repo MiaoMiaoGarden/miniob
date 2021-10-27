@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 #include "execute_stage.h"
 
@@ -218,13 +219,21 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right) {
 }
 
 
-bool isnumber(const char *attr){
-  if(!('0'<=attr[0] && attr[0]<='9') && attr[0]!='-' && attr[0]!='+'){
+bool is_valid_aggre(char *attr){  // number, float, *
+  if(strcmp("*", attr)==0){
+    return true;
+  }
+
+  int i = 0;
+  int length = strlen(attr);
+  if(i>=length) return false;
+
+  if(!('0'<=attr[i] && attr[i]<='9') && attr[i]!='-' && attr[i]!='+'){
     return false;
   }
-  int length = strlen(attr);
-  for(int i = 1; i<length; i++){
-    if('0'<=attr[0] && attr[0]<='9' || attr[i]=='.'){
+
+  for(; i<length; i++){
+    if('0'<=attr[i] && attr[i]<='9' || attr[i]=='.'){
       if(i==length-1){
         return true;
       }
@@ -233,6 +242,24 @@ bool isnumber(const char *attr){
       return false;
     }
   }
+}
+
+void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name){
+    int j = 0;
+    for(int i = 0; i<strlen(attribute_name); i++){
+        if(i==0){
+            if(aggre_type==COUNT){  // COUNT{
+                i+=5;
+            } else {
+                i+=3;
+            }
+        }
+        if(attribute_name[i]=='(' || attribute_name[i]==')' || attribute_name[i]==' '){
+            continue;
+        }
+        attr_name[j++] = attribute_name[i];
+    }
+    attr_name[j] = '\0';
 }
 
 
@@ -284,10 +311,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
           RelAttr attr = sql->sstr.selection.attributes[ sql->sstr.selection.attr_num-1-i];  // todo: 0 relation
           int schema_index = 0;
-          if(isnumber(attr.attribute_name)){  // count(1) find the first one attr
+          char parsed[100];
+          parse_attr(attr.attribute_name, attr.aggre_type,parsed);
+          if(is_valid_aggre(parsed)){  // count(1) find the first one attr
             schema_index = 0;
           } else{
-              schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+              schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
           }
           if (schema_index < 0 || schema_index >= (int)tuple_set.get_schema().fields().size()) {
             continue;
@@ -296,19 +325,20 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           if(attr_type==INTS && attr.is_aggre && attr.aggre_type==AVG){
             attr_type = FLOATS;
           }
-          std::string name = attr.attribute_name;
-          if(attr.is_aggre){
-            if(attr.aggre_type==COUNT){
-              name = "count("+name+")";
-            } else if(attr.aggre_type==MIN){
-              name = "min("+name+")";
-            } else if(attr.aggre_type==MAX){
-              name = "max("+name+")";
-            } else{
-              name = "avg("+name+")";
-            }
-          }
-          tuple_schema.add(attr_type, selects.relations[0], name.c_str(), attr.is_aggre, attr.aggre_type);
+          // std::string name = attr.attribute_name;
+          // if(attr.is_aggre){
+          //   if(attr.aggre_type==COUNT){
+          //     name = "count("+name+")";
+          //   } else if(attr.aggre_type==MIN){
+          //     name = "min("+name+")";
+          //   } else if(attr.aggre_type==MAX){
+          //     name = "max("+name+")";
+          //   } else{
+          //     name = "avg("+name+")";
+          //   }
+          // }
+          // tuple_schema.add(attr_type, selects.relations[0], name.c_str(), attr.is_aggre, attr.aggre_type);
+          tuple_schema.add(attr_type, selects.relations[0], attr.attribute_name, attr.is_aggre, attr.aggre_type);
         }
         aggred_tupleset.set_schema(tuple_schema);
 
@@ -323,10 +353,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             break;
           }
           int index = 0;
-          if(isnumber(attr.attribute_name)){
+          char parsed[100];
+          parse_attr(attr.attribute_name,attr.aggre_type, parsed);
+          if(is_valid_aggre(parsed)){
            index = 0;
            } else{
-             index = tuple_set.get_schema().index_of_field(selects.relations[0], attr.attribute_name);
+             index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
           }
           if(attr.aggre_type==COUNT){
             // null check here
@@ -344,7 +376,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               int t2 = 0;
               for(auto &value: temp1.values()){
                 if(t1==min_index && t2==index){
-                  aggred_tuple.add(value);
+                  if( tuple_set.get_schema().field(index).type()==FLOATS){
+                      FloatValue *floatvalue = dynamic_cast<FloatValue *>(value.get());
+                      float fvalue = round(100*(floatvalue->get_value()))/100.0;
+                      aggred_tuple.add(fvalue);
+                  } else {
+                      aggred_tuple.add(value);
+                  }
                   flag = true;
                   break;
                 }
@@ -367,7 +405,14 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
               int t2 = 0;
               for(auto &value: temp1.values()){
                 if(t1==max_index && t2==index){
-                  aggred_tuple.add(value);
+                  if( tuple_set.get_schema().field(index).type()==FLOATS){
+                      FloatValue *floatvalue = dynamic_cast<FloatValue *>(value.get());
+                      float fvalue = round(100*(floatvalue->get_value()))/100.0;
+                      aggred_tuple.add(fvalue);
+                  } else {
+                      aggred_tuple.add(value);
+                  }
+                  
                   flag = true;
                   break;
                 }
@@ -487,13 +532,24 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
   for (int i = selects.attr_num - 1; i >= 0; i--) {
     const RelAttr &attr = selects.attributes[i];
     if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
-      if (0 == strcmp("*", attr.attribute_name) || isnumber(attr.attribute_name)) {
+      char parsed[100];
+      parse_attr(attr.attribute_name,attr.aggre_type,parsed);
+      if (0 == strcmp("*", attr.attribute_name) || is_valid_aggre(parsed)) {
         // 列出这张表所有字段
         TupleSchema::from_table(table, schema);
         break; // 没有校验，给出* 之后，再写字段的错误
       } else {
         // 列出这张表相关字段
-        RC rc = schema_add_field(table, attr.attribute_name, schema, attr.is_aggre, attr.aggre_type);
+
+        RC rc = RC::SUCCESS;
+        if(attr.is_aggre){
+          char parsed[100];
+          parse_attr(attr.attribute_name,attr.aggre_type, parsed);
+          rc = schema_add_field(table, parsed, schema, attr.is_aggre, attr.aggre_type);
+        } else {
+          rc = schema_add_field(table, attr.attribute_name, schema, attr.is_aggre, attr.aggre_type);
+        }
+
         if (rc != RC::SUCCESS) {
           if (rc == RC::SCHEMA_FIELD_MISSING) {
           //  snprintf(response, sizeof(response), "Unknown column '%s' in 'field list'\n", attr.attribute_name);
