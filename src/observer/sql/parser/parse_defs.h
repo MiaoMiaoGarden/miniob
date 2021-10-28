@@ -27,9 +27,7 @@ typedef enum {COUNT=0,MIN=1,MAX=2,AVG=3,NON=4} AggreType;
 typedef struct {
     char *relation_name;   // relation name (may be NULL) 表名
     char *attribute_name;  // attribute name              属性名
-    int is_aggre;  // 0 no, 1 yes
     AggreType aggre_type;
-    
 } RelAttr;
 
 typedef enum {

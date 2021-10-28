@@ -28,6 +28,7 @@ public:
   Tuple() = default;
 
   Tuple(const Tuple &other);
+  Tuple(const int size);
 
   ~Tuple();
 
@@ -50,6 +51,11 @@ public:
 
   const TupleValue &get(int index) const {
     return *values_[index];
+  }
+
+  void set(int index, std::shared_ptr<TupleValue> &value) {
+    // TODO: need check 'index < values_.size()'
+    values_[index] = value;
   }
 
   const std::shared_ptr<TupleValue> &get_pointer(int index) const {
@@ -97,8 +103,7 @@ public:
   ~TupleSchema() = default;
 
   void add(AttrType type, const char *table_name, const char *field_name);
-  void add(AttrType type, const char *table_name, const char *field_name,bool isaggre,AggreType aggre_type);
-  void add_if_not_exists(AttrType type, const char *table_name, const char *field_name,bool isaggre,AggreType aggre_type);
+  void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
 

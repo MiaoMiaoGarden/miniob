@@ -21,7 +21,14 @@ Tuple::Tuple(const Tuple &other) {
     exit(1);
 }
 
+<<<<<<< HEAD
 Tuple::Tuple(Tuple &&other) noexcept: values_(std::move(other.values_)) {
+=======
+Tuple::Tuple(const int size): values_(size) {
+}
+
+Tuple::Tuple(Tuple &&other) noexcept : values_(std::move(other.values_)) {
+>>>>>>> 6dfa0e9a3587ad0d6ea622bf54baf0c38d2e61a8
 }
 
 Tuple &Tuple::operator=(Tuple &&other) noexcept {
@@ -80,6 +87,7 @@ void TupleSchema::from_table(const Table *table, TupleSchema &schema) {
 void TupleSchema::add(AttrType type, const char *table_name, const char *field_name) {
     fields_.emplace_back(type, table_name, field_name);
 }
+<<<<<<< HEAD
 
 void
 TupleSchema::add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType aggre_type) {
@@ -93,9 +101,23 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
             0 == strcmp(field.field_name(), field_name)) {
             return;
         }
+=======
+
+void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType aggre_type) {
+
+void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name) {
+  for (const auto &field: fields_) {   // todo: aggre & no aggre need to check here
+    if (0 == strcmp(field.table_name(), table_name) &&
+        0 == strcmp(field.field_name(), field_name)) {
+      return;
+>>>>>>> 6dfa0e9a3587ad0d6ea622bf54baf0c38d2e61a8
     }
 
+<<<<<<< HEAD
     add(type, table_name, field_name, isaggre, aggre_type);
+=======
+  add(type, table_name, field_name);
+>>>>>>> 6dfa0e9a3587ad0d6ea622bf54baf0c38d2e61a8
 }
 
 void TupleSchema::append(const TupleSchema &other) {
