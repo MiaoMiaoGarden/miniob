@@ -30,7 +30,6 @@ typedef enum {COUNT,MIN,MAX,AVG} AggreType;
 typedef struct {
   char *relName;  // relation name (may be NULL) 表名
   char *attrName; // attribute name              属性名
-  bool is_aggre;
   AggreType aggre_type;
 } RelAttr;
 

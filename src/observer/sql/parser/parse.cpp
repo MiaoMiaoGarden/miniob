@@ -30,7 +30,6 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
     }
     relation_attr->attribute_name = strdup(attribute_name);
     if(isaggre==1){
-        relation_attr->is_aggre = true;
         if(aggre_type==0){
             relation_attr->aggre_type = COUNT;
         } else  if(aggre_type==1){
@@ -41,7 +40,6 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
             relation_attr->aggre_type = AVG;
         }
     } else {
-        relation_attr->is_aggre = false;
         relation_attr->aggre_type = NON;
     }
     
