@@ -11,6 +11,7 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Longda on 2021/4/13.
 //
+#include <functional>
 #include "storage/common/bplus_tree.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "rc.h"

@@ -28,7 +28,6 @@ typedef struct {
     char *relation_name;   // relation name (may be NULL) 表名
     char *attribute_name;  // attribute name              属性名
     AggreType aggre_type;
-    
 } RelAttr;
 
 typedef enum {
