@@ -29,7 +29,6 @@ typedef struct {
     char *attribute_name;  // attribute name              属性名
     int is_aggre;  // 0 no, 1 yes
     AggreType aggre_type;
-    
 } RelAttr;
 
 typedef enum {
