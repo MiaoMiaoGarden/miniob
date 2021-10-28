@@ -246,6 +246,7 @@ bool is_valid_aggre(char *attr){  // number, float, *
 }
 
 void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name){
+  if(aggre_type==NON) return;
     int j = 0;
     for(int i = 0; i<strlen(attribute_name); i++){
         if(i==0){
@@ -263,58 +264,15 @@ void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name){
     attr_name[j] = '\0';
 }
 
-
-// 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
-// 需要补充上这一部分. 校验部分也可以放在resolve，不过跟execution放一起也没有关系
-RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_event) {
-
-  RC rc = RC::SUCCESS;
-  Session *session = session_event->get_client()->session;
-  Trx *trx = session->current_trx();
-  const Selects &selects = sql->sstr.selection;
-  // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
-  std::vector<SelectExeNode *> select_nodes;
-  for (size_t i = 0; i < selects.relation_num; i++) {
-    const char *table_name = selects.relations[i];
-    SelectExeNode *select_node = new SelectExeNode;
-    rc = create_selection_executor(trx, selects, db, table_name, *select_node, session_event);
-    if (rc != RC::SUCCESS) {
-      delete select_node;
-      for (SelectExeNode *& tmp_node: select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, false);
-      return rc;
-    }
-    select_nodes.push_back(select_node);
-  }
-
-  if (select_nodes.empty()) {
-    LOG_ERROR("No table given");
-    end_trx_if_need(session, trx, false);
-    return RC::SQL_SYNTAX;
-  }
-
-  std::vector<TupleSet> tuple_sets;
-  for (SelectExeNode *&node: select_nodes) {
-    TupleSet tuple_set;
-    rc = node->execute(tuple_set);
-    if (rc != RC::SUCCESS) {
-      for (SelectExeNode *& tmp_node: select_nodes) {
-        delete tmp_node;
-      }
-      end_trx_if_need(session, trx, false);
-      return rc;
-    } else {
-      // tuple_set 是一张表上得到的所有tuple查询结果
-        TupleSet aggred_tupleset;
+RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, TupleSet &aggred_tupleset){
+  // schema 
         TupleSchema tuple_schema;
-        for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
-          RelAttr attr = sql->sstr.selection.attributes[ sql->sstr.selection.attr_num-1-i];  // todo: 0 relation
+        for(size_t i = 0; i < selects.attr_num; i++){
+          RelAttr attr = selects.attributes[selects.attr_num-1-i];  // todo: 0 relation
           int schema_index = 0;
           char parsed[100];
           parse_attr(attr.attribute_name, attr.aggre_type,parsed);
-          if(is_valid_aggre(parsed)){  // count(1) find the first one attr
+          if(attr.aggre_type!=NON && is_valid_aggre(parsed)){  // count(1) find the first one attr
             schema_index = 0;
           } else{
               schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
@@ -323,27 +281,21 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             continue;
           }
           AttrType attr_type = tuple_set.get_schema().field(schema_index).type();
-          if(attr_type == INTS && attr.is_aggre && attr.aggre_type == AVG){
+          if(attr_type == INTS && attr.aggre_type == AVG){
             attr_type = FLOATS;
           }
-          tuple_schema.add(attr_type, selects.relations[0], attr.attribute_name, attr.is_aggre, attr.aggre_type);
+          tuple_schema.add(attr_type, selects.relations[0], attr.attribute_name);
         }
         aggred_tupleset.set_schema(tuple_schema);
 
+  // tuple (only one tuple)
         Tuple aggred_tuple;
-        Tuple *tuple;
-        bool aggre_selection = true;
-        // do_aggregate(tuple_sets, aggred_tupleset)
-        for(size_t i = 0; i < sql->sstr.selection.attr_num; i++){
-          RelAttr attr = sql->sstr.selection.attributes[ sql->sstr.selection.attr_num-1-i];
-          if(!attr.is_aggre){ 
-            aggre_selection = false;
-            break;
-          }
+        for(size_t i = 0; i < selects.attr_num; i++){
+          RelAttr attr = selects.attributes[selects.attr_num-1-i];
           int index = 0;
           char parsed[100];
           parse_attr(attr.attribute_name,attr.aggre_type, parsed);
-          if(is_valid_aggre(parsed)){
+          if(attr.aggre_type!=NON && is_valid_aggre(parsed)){
            index = 0;
            } else{
              index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
@@ -447,12 +399,62 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
           }
           
         }
-      if(aggre_selection){
         aggred_tupleset.add(std::move(aggred_tuple));
-        tuple_sets.push_back(std::move(aggred_tupleset));
-      } else if(tuple_set.schema().fields().size() != 0) {
-        tuple_sets.push_back(std::move(tuple_set));
+        return RC::SUCCESS;
+}
+
+
+// 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
+// 需要补充上这一部分. 校验部分也可以放在resolve，不过跟execution放一起也没有关系
+RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_event) {
+
+  RC rc = RC::SUCCESS;
+  Session *session = session_event->get_client()->session;
+  Trx *trx = session->current_trx();
+  const Selects &selects = sql->sstr.selection;
+  // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
+  std::vector<SelectExeNode *> select_nodes;
+  for (size_t i = 0; i < selects.relation_num; i++) {
+    const char *table_name = selects.relations[i];
+    SelectExeNode *select_node = new SelectExeNode;
+    rc = create_selection_executor(trx, selects, db, table_name, *select_node, session_event);
+    if (rc != RC::SUCCESS) {
+      delete select_node;
+      for (SelectExeNode *& tmp_node: select_nodes) {
+        delete tmp_node;
       }
+      end_trx_if_need(session, trx, false);
+      return rc;
+    }
+    select_nodes.push_back(select_node);
+  }
+
+  if (select_nodes.empty()) {
+    LOG_ERROR("No table given");
+    end_trx_if_need(session, trx, false);
+    return RC::SQL_SYNTAX;
+  }
+
+  std::vector<TupleSet> tuple_sets;
+  for (SelectExeNode *&node: select_nodes) {
+    TupleSet tuple_set;
+    rc = node->execute(tuple_set);
+    if (rc != RC::SUCCESS) {
+      for (SelectExeNode *& tmp_node: select_nodes) {
+        delete tmp_node;
+      }
+      end_trx_if_need(session, trx, false);
+      return rc;
+    } else {
+      // tuple_set 是一张表上得到的所有tuple查询结果
+        RelAttr attr = selects.attributes[0];
+        if(attr.aggre_type!=NON){
+          TupleSet aggred_tupleset;
+          do_aggregate(selects, tuple_set, aggred_tupleset);
+          tuple_sets.push_back(std::move(aggred_tupleset));
+        } else {
+          tuple_sets.push_back(std::move(tuple_set));
+        }
     }
   }
 
@@ -492,14 +494,14 @@ bool match_table(const Selects &selects, const char *table_name_in_condition, co
   return selects.relation_num == 1;
 }
 
-static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema, bool isaggre, AggreType aggre_type) {
+static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema) {
   const FieldMeta *field_meta = table->table_meta().field(field_name);
   if (nullptr == field_meta) {
     LOG_WARN("No such field. %s.%s", table->name(), field_name);
     return RC::SCHEMA_FIELD_MISSING;
   }
 
-  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name(), isaggre, aggre_type);
+  schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name());
   return RC::SUCCESS;
 }
 
@@ -521,9 +523,12 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
   for (int i = selects.attr_num - 1; i >= 0; i--) {
     const RelAttr &attr = selects.attributes[i];
     if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
+
       char parsed[100];
-      parse_attr(attr.attribute_name, attr.aggre_type, parsed);
-      if (0 == strcmp("*", attr.attribute_name) || is_valid_aggre(parsed)) {
+
+      parse_attr(attr.attribute_name,attr.aggre_type,parsed); // if not aggre, will do nothing and return 
+      if (0 == strcmp("*", attr.attribute_name) || ( attr.aggre_type!=NON && is_valid_aggre(parsed))) {
+
         // 列出这张表所有字段
         TupleSchema::from_table(table, schema);
         break; // 没有校验，给出* 之后，再写字段的错误
@@ -531,12 +536,10 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
         // 列出这张表相关字段
 
         RC rc = RC::SUCCESS;
-        if(attr.is_aggre){
-          char parsed[100];
-          parse_attr(attr.attribute_name,attr.aggre_type, parsed);
-          rc = schema_add_field(table, parsed, schema, attr.is_aggre, attr.aggre_type);
+        if(attr.aggre_type!=NON){
+          rc = schema_add_field(table, parsed, schema);
         } else {
-          rc = schema_add_field(table, attr.attribute_name, schema, attr.is_aggre, attr.aggre_type);
+          rc = schema_add_field(table, attr.attribute_name, schema);
         }
 
         if (rc != RC::SUCCESS) {

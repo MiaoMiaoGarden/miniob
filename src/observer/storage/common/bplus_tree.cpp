@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/default/disk_buffer_pool.h"
 #include "rc.h"
 #include "common/log/log.h"
+#include <functional>
 #include "sql/parser/parse_defs.h"
 
 std::vector<std::string> split_date(const std::string &s, char delim) {

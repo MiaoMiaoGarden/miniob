@@ -81,11 +81,10 @@ void TupleSchema::from_table(const Table *table, TupleSchema &schema) {
 void TupleSchema::add(AttrType type, const char *table_name, const char *field_name) {
   fields_.emplace_back(type, table_name, field_name);
 }
-void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType aggre_type) {
-  fields_.emplace_back(type, table_name, field_name, isaggre, aggre_type);
-}
 
 void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType aggre_type) {
+
+void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name) {
   for (const auto &field: fields_) {   // todo: aggre & no aggre need to check here
     if (0 == strcmp(field.table_name(), table_name) &&
         0 == strcmp(field.field_name(), field_name)) {
@@ -93,7 +92,7 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
     }
   }
 
-  add(type, table_name, field_name, isaggre, aggre_type);
+  add(type, table_name, field_name);
 }
 
 void TupleSchema::append(const TupleSchema &other) {
