@@ -56,7 +56,7 @@ RC DefaultHandler::init(const char *base_dir) {
 void DefaultHandler::destroy() {
     sync();
 
-    for (const auto &iter : opened_dbs_) {
+    for (const auto &iter: opened_dbs_) {
         delete iter.second;
     }
     opened_dbs_.clear();
@@ -156,17 +156,23 @@ RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relat
     if (nullptr == table) {
         return RC::SCHEMA_TABLE_NOT_EXIST;
     }
+//    std::stack<>
+    std::vector<Record> trash_insert;
     if (inserts->multi_insert_lines != 0) {
         // follow write order
-        std::vector<std::string> conflict_record;
-        RC c = table->insert_record(trx, inserts->value_num, inserts->values);
+        RC c = table->mulit_insert_record(trx, inserts->value_num, inserts->values, trash_insert);
         if (c != RC::SUCCESS) {
             return c;
         }
-
         for (size_t i = 0; i < inserts->multi_insert_lines; i++) {
-            RC c = table->insert_record(trx, inserts->multiValues[i].value_length, inserts->multiValues[i].values);
+            RC c = table->mulit_insert_record(trx, inserts->multiValues[i].value_length, inserts->multiValues[i].values,
+                                              trash_insert);
             if (c != RC::SUCCESS) {
+                if (!trash_insert.empty()) {
+                    for (const auto &e: trash_insert) {
+                        table->rollback_insert(trx, e.rid);
+                    }
+                }
                 return c;
             }
         }
