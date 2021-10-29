@@ -224,9 +224,13 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right) {
 }
 
 
-bool is_valid_aggre(char *attr) {  // number, float, *
+bool is_valid_aggre(char *attr, AggreType aggre_type) {  // number, float, *
     if (strcmp("*", attr) == 0) {
-        return true;
+        if(aggre_type==COUNT)
+            return true;
+        else{
+            return false;
+        }
     }
 
     int i = 0;
@@ -276,7 +280,7 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
         int schema_index = 0;
         char parsed[100];
         parse_attr(attr.attribute_name, attr.aggre_type, parsed);
-        if (attr.aggre_type != NON && is_valid_aggre(parsed)) {  // count(1) find the first one attr
+        if (attr.aggre_type != NON && is_valid_aggre(parsed, attr.aggre_type)) {  // count(1) find the first one attr
             schema_index = 0;
         } else {
             schema_index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
@@ -299,7 +303,7 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
         int index = 0;
         char parsed[100];
         parse_attr(attr.attribute_name, attr.aggre_type, parsed);
-        if (attr.aggre_type != NON && is_valid_aggre(parsed)) {
+        if (attr.aggre_type != NON && is_valid_aggre(parsed, attr.aggre_type)) {
             index = 0;
         } else {
             index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
@@ -532,7 +536,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
             char parsed[100];
 
             parse_attr(attr.attribute_name, attr.aggre_type, parsed); // if not aggre, will do nothing and return
-            if (0 == strcmp("*", attr.attribute_name) || (attr.aggre_type != NON && is_valid_aggre(parsed))) {
+            if (0 == strcmp("*", attr.attribute_name) || (attr.aggre_type != NON && is_valid_aggre(parsed, attr.aggre_type))) {
 
                 // 列出这张表所有字段
                 TupleSchema::from_table(table, schema);
