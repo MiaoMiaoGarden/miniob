@@ -86,8 +86,6 @@ void TupleSchema::add(AttrType type, const char *table_name, const char *field_n
 }
 
 
-
-
 void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name) {
   for (const auto &field: fields_) {   // todo: aggre & no aggre need to check here
     if (0 == strcmp(field.table_name(), table_name) &&
@@ -97,9 +95,6 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
   }
   add(type, table_name, field_name);
 }
-
-
-
 
 
 void TupleSchema::append(const TupleSchema &other) {
