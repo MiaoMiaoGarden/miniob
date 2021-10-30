@@ -22,6 +22,9 @@ extern double atof();
 %option bison-bridge
 %option reentrant
 
+IS               [Ii][Ss]
+NOT              [Nn][Oo][Tt]
+NULL             [Nn][Uu][Ll][Ll]
 WHITE_SAPCE      [\ \t\b\f]
 DIGIT            [0-9]+
 COU              [Cc][Oo][Uu][Nn][Tt]
@@ -77,7 +80,11 @@ QUOTE            [\'\"]
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
-
+{IS}                                     RETURN_TOKEN(IS);
+{IS}[\ ]*{NOT}                                RETURN_TOKEN(ISNOT);
+[Nn][Oo][Tt]                             RETURN_TOKEN(NOT);
+[Nn][Uu][Ll][Ll]                         RETURN_TOKEN(NULL_TOKEN);
+[Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]         RETURN_TOKEN(NULLABLE);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 {COU}{TOAGGRE}                                yylval->string=strdup(yytext); RETURN_TOKEN(TOCOUNT);
 {MA}{TOAGGRE}                                        yylval->string=strdup(yytext); RETURN_TOKEN(TOMAX);

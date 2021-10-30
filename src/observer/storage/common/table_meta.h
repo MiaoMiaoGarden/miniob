@@ -36,6 +36,8 @@ public:
 
   RC add_index(const IndexMeta &index);
 
+  void fields_nullable_type(std::vector<bool> &nullable_type);
+
 public:
   const char * name() const;
   const FieldMeta * trx_field() const;

@@ -267,7 +267,7 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
   // schema 
         TupleSchema tuple_schema;
         for(size_t i = 0; i < selects.attr_num; i++){
-          RelAttr attr = selects.attributes[selects.attr_num-1-i];  // todo: 0 relation
+          RelAttr attr = selects.attributes[selects.attr_num-1-i];  // todo: 0 relation?
           int schema_index = 0;
           char parsed[100];
           parse_attr(attr.attribute_name, attr.aggre_type,parsed);
@@ -293,18 +293,34 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
           RelAttr attr = selects.attributes[selects.attr_num-1-i];
           int index = 0;
           char parsed[100];
+          bool count_null = false;
           parse_attr(attr.attribute_name,attr.aggre_type, parsed);
-          if(attr.aggre_type!=NON && is_valid_aggre(parsed)){
-           index = 0;
+          if(attr.aggre_type!=NON && is_valid_aggre(parsed)){  // count(1)\ count(*)\ etc..
+              index = 0;
+              count_null = true;
            } else{
              index = tuple_set.get_schema().index_of_field(selects.relations[0], parsed);
+             count_null = false;
           }
           if(attr.aggre_type==COUNT){
-            // null check here
-            aggred_tuple.add(tuple_set.size());
+            if(count_null){
+              aggred_tuple.add(tuple_set.size());
+            } else {
+              // null check here
+                int count = 0;
+                for(auto &temp1:tuple_set.tuples()){
+                  if(temp1.get(index).is_null()) continue;
+                  else count++;
+                }
+                aggred_tuple.add(count);
+            }
           } else if(attr.aggre_type==MIN){
             int min_index = 0;
-            for(size_t j = 0; j<tuple_set.size(); j++){
+            while(min_index<tuple_set.size() && (tuple_set.get(min_index).get(index).is_null())){
+              min_index++;
+            }
+            for(size_t j = min_index+1; j<tuple_set.size(); j++){
+              if(tuple_set.get(j).get(index).is_null()) continue;
               if(tuple_set.get(min_index).get(index).compare(tuple_set.get(j).get(index)) > 0){
                 min_index = j;
               }
@@ -333,7 +349,11 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
             // aggred_tuple.add(tuple_set.get(min_index).get(index));
           } else if(attr.aggre_type==MAX){
             int max_index = 0;
-            for(size_t j = 0; j<tuple_set.size(); j++){
+            while(max_index<tuple_set.size() && (tuple_set.get(max_index).get(index).is_null())){
+              max_index++;
+            }
+            for(size_t j = max_index+1; j<tuple_set.size(); j++){
+              if(tuple_set.get(j).get(index).is_null()) continue;
               if(tuple_set.get(max_index).get(index).compare(tuple_set.get(j).get(index)) < 0){
                 max_index = j;
               }
@@ -367,32 +387,38 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
             }
             if(type == FLOATS){
                 float sum  = 0.0;
+                int count = 0;
                 for(auto &temp1:tuple_set.tuples()){
+                  if(temp1.get(index).is_null()) continue;
                   int t2 = 0;
                   for(auto &value : temp1.values()){
                     if(t2==index){
+                        count++;
                         FloatValue *floatvalue = dynamic_cast<FloatValue *>(value.get());
                         sum+=floatvalue->get_value();
                     }
                     t2++;
                   }
                 }
-                float avg = round(100*sum/tuple_set.size())/100.0;
+                float avg = round(100*sum/count)/100.0;
                 aggred_tuple.add(avg);
 
             } if(type == INTS){
                 int sum = 0;
+                int count = 0;
                 for(auto &temp1:tuple_set.tuples()){
+                  if(temp1.get(index).is_null()) continue;
                   int t2 = 0;
                   for(auto &value : temp1.values()){
                     if(t2==index){
+                        count++;
                         IntValue *intvalue = dynamic_cast<IntValue *>(value.get());
                         sum+=intvalue->get_value();
                     }
                     t2++;
                   }
                 }
-                float avg = round(100*(float)sum/tuple_set.size())/100.0;
+                float avg = round(100*(float)sum/count)/100.0;
                 aggred_tuple.add(avg);
             }
           }

@@ -110,6 +110,12 @@ ParserContext *get_context(yyscan_t scanner)
 		MI
 		MA
 		AV
+		NOT
+		NULL_TOKEN
+		NULLABLE
+		IS
+		ISNOT
+
 
 %union {
   struct _Attr *attr;
@@ -261,7 +267,7 @@ attr_def:
     ID_get type LBRACE number RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, $4, 0);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -269,10 +275,27 @@ attr_def:
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
 			CONTEXT->value_length++;
 		}
+	|ID_get type NULLABLE{
+		AttrInfo attribute;
+		attr_info_init(&attribute, CONTEXT->id, $2, 4, 1);
+		create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
+		CONTEXT->value_length++;
+	}
     |ID_get type
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, 0);
+			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
+			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].type=$2;  
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length=4; // default attribute length
+			CONTEXT->value_length++;
+		}
+	|ID_get type NOT NULL_TOKEN
+			{
+			AttrInfo attribute;
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, 0);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -366,6 +389,15 @@ value:
             value_init_date(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++], $1);
 	    }
 	    }
+	|NULL_TOKEN{
+        if (CONTEXT->multi_insert_lines == 0) {
+
+  		    value_init_null(&CONTEXT->values[CONTEXT->value_length++]);
+		} else {
+		    size_t line = CONTEXT->multi_insert_lines - 1;
+		    value_init_null(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++]);
+		}
+		}
     ;
     
 delete:		/*  delete 语句的语法解析树*/
@@ -664,6 +696,8 @@ comOp:
     | LE { CONTEXT->comp = LESS_EQUAL; }
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
+	| IS {CONTEXT->comp = IS_COMPOP; }
+	| ISNOT {CONTEXT->comp = IS_NOT_COMPOP; }
     ;
 
 load_data:
