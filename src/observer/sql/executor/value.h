@@ -24,7 +24,7 @@ class TupleValue {
 public:
   TupleValue() = default;
   virtual ~TupleValue() = default;
-
+  virtual bool is_null() const = 0;
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
 private:
@@ -35,8 +35,21 @@ public:
   explicit IntValue(int value) : value_(value) {
   }
 
+  bool is_null() const override {
+    char *char_value = (char*)(&value_);
+    if(*char_value=='!'){
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   void to_string(std::ostream &os) const override {
-    os << value_;
+    if(is_null()){
+      os << "null";
+    } else {
+      os << value_;
+    }
   }
 
   int compare(const TupleValue &other) const override {
@@ -63,8 +76,20 @@ public:
   explicit FloatValue(float value) : value_(value) {
   }
 
+  bool is_null() const override {
+    char *char_value = (char*)(&value_);
+    if(*char_value=='!'){
+      return true;
+    } else {
+      return false;
+    }
+  }
   void to_string(std::ostream &os) const override {
-    os << value_;
+    if(is_null()){
+      os << "null";
+    } else {
+      os << value_;
+    }
   }
 
   int compare(const TupleValue &other) const override {
@@ -91,9 +116,20 @@ public:
   }
   explicit StringValue(const char *value) : value_(value) {
   }
+  bool is_null() const override {
+    if(value_[0]=='!'){
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   void to_string(std::ostream &os) const override {
-    os << value_;
+    if(is_null()){
+      os << "null";
+    } else {
+      os << value_;
+    }
   }
 
   int compare(const TupleValue &other) const override {
