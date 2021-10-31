@@ -28,7 +28,6 @@ public:
   Tuple() = default;
 
   Tuple(const Tuple &other);
-  Tuple(const int size);
 
   ~Tuple();
 
