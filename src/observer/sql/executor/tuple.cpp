@@ -24,10 +24,6 @@ Tuple::Tuple(const Tuple &other) {
 Tuple::Tuple(Tuple &&other) noexcept: values_(std::move(other.values_)) {
 }
 
-Tuple::Tuple(const int size): values_(size) {
-}
-
-
 Tuple &Tuple::operator=(Tuple &&other) noexcept {
     if (&other == this) {
         return *this;
