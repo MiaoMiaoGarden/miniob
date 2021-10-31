@@ -120,6 +120,7 @@ public:
   }
 
   void print(std::ostream &os) const;
+  void print(std::ostream &os, bool flag) const;
   void print_with_tablename(std::ostream &os) const;
 public:
   static void from_table(const Table *table, TupleSchema &schema);
@@ -138,6 +139,7 @@ public:
   ~TupleSet() = default;
 
   void set_schema(const TupleSchema &schema);
+  void set_tuple_set(TupleSet&& tuple_set);
 
   const TupleSchema &get_schema() const;
 
@@ -151,6 +153,7 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  void print(std::ostream &os, bool flag) const;
   void print_with_tablename(std::ostream &os) const;
 public:
   const TupleSchema &schema() const {

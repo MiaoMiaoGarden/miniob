@@ -137,6 +137,26 @@ void TupleSchema::print(std::ostream &os) const {
     os << fields_.back().field_name() << std::endl;
 }
 
+void TupleSchema::print(std::ostream &os, bool flag) const {
+    if (fields_.empty()) {
+        os << "No schema";
+        return;
+    }
+
+    for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
+         iter != end; ++iter) {
+        if (flag) {
+            os << iter->table_name() << ".";
+        }
+        os << iter->field_name() << " | ";
+    }
+
+    if (flag) {
+        os << fields_.back().table_name() << ".";
+    }
+    os << fields_.back().field_name() << std::endl;
+}
+
 void TupleSchema::print_with_tablename(std::ostream &os) const {
     if (fields_.empty()) {
         os << "No schema";
@@ -214,8 +234,38 @@ void TupleSet::print(std::ostream &os) const {
     print_tuples(os, tuples_);
 }
 
+void TupleSet::print(std::ostream &os, bool flag) const {
+    if (schema_.fields().empty()) {
+        LOG_WARN("Got empty schema");
+        return;
+    }
+
+    schema_.print(os, flag);
+    print_tuples(os, tuples_);
+}
+
 void TupleSet::set_schema(const TupleSchema &schema) {
     schema_ = schema;
+}  
+
+void TupleSet::set_tuple_set(TupleSet &&tuple_set) {
+    const TupleSchema &output_schema = tuple_set.schema();
+    const TupleSchema &input_schema = this->schema();
+
+    const std::vector<TupleField> &tuple_fields = input_schema.fields();
+    for (auto& tuple : tuple_set.tuples()) {
+        Tuple new_tuple;
+        for (auto& tuple_field : tuple_fields) {
+            int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
+            std::shared_ptr<TupleValue> value_ptr = tuple.get_pointer(i);
+            if (tuple_field.isaggre) {
+
+            } else {
+                new_tuple.add(value_ptr);
+            }
+        }
+        add(std::move(new_tuple));
+    }
 }
 
 const TupleSchema &TupleSet::get_schema() const {

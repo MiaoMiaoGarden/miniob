@@ -63,6 +63,7 @@ public:
     }
     return 0;
   }
+
   int get_value(){
     return value_;
   }
@@ -103,6 +104,7 @@ public:
     }
     return 0;
   }
+
   float get_value(){
     return value_;
   }
@@ -136,6 +138,7 @@ public:
     const StringValue &string_other = (const StringValue &)other;
     return strcmp(value_.c_str(), string_other.value_.c_str());
   }
+
   std::string get_value(){
     return value_;
   }
