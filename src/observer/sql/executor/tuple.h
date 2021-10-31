@@ -52,6 +52,11 @@ public:
     return *values_[index];
   }
 
+  void set(int index, std::shared_ptr<TupleValue> &value) {
+    // TODO: need check 'index < values_.size()'
+    values_[index] = value;
+  }
+
   const std::shared_ptr<TupleValue> &get_pointer(int index) const {
     return values_[index];
   }

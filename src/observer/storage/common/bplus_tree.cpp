@@ -11,13 +11,14 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Longda on 2021/4/13.
 //
+#include <functional>
 #include "storage/common/bplus_tree.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "rc.h"
 #include "common/log/log.h"
 #include <functional>
 #include "sql/parser/parse_defs.h"
-
+#include "functional"
 std::vector<std::string> split_date(const std::string &s, char delim) {
     std::stringstream ss(s);
     std::string item;
@@ -31,7 +32,7 @@ std::vector<std::string> split_date(const std::string &s, char delim) {
 // if str_l == str_r return 0
 // if str_l > str_r return 1
 // if srt_l < str_r return -1
-std::function<int(const char *l, const char *r)> cmp_date = [](const char *l, const char *r) -> int {
+int cmp_date (const char *l, const char *r) {
     const std::vector<std::string> &l_value = split_date(l, '-');
     const std::vector<std::string> &r_value = split_date(r, '-');
     // 1. compare year
