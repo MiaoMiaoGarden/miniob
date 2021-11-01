@@ -304,6 +304,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     TupleSchema output_scheam;
     rc = gen_output_scheam(tables_map, selects, output_scheam);
     if (rc != RC::SUCCESS) {
+        snprintf(response, sizeof(response), "FAILURE\n");
+        session_event->set_response(response);
         for (SelectExeNode *&tmp_node: select_nodes) {
             delete tmp_node;
         }
@@ -332,7 +334,16 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     TupleSet tuple_set1; //最后输出的tuple_set
     tuple_set1.set_schema(output_scheam);
-    tuple_set1.set_tuple_set(std::move(tuple_set));
+    rc = tuple_set1.set_tuple_set(std::move(tuple_set));
+    if (rc != RC::SUCCESS) {
+        snprintf(response, sizeof(response), "FAILURE\n");
+        session_event->set_response(response);
+        for (SelectExeNode *&tmp_node: select_nodes) {
+            delete tmp_node;
+        }
+        end_trx_if_need(session, trx, false);
+        return rc;
+    }
 
     std::stringstream ss;
     tuple_set1.print(ss, select_nodes.size() != 1);
