@@ -22,13 +22,13 @@
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
 
-bool is_valid_aggre(char *attr, AggreType aggre_type);
+bool is_valid_aggre(const char *attr, AggreType aggre_type);
 void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name);
 
 class AggregateValue {
 public:
     AggregateValue() = default;
-    virtual RC add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) = 0;
+    virtual RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) = 0;
     virtual std::shared_ptr<TupleValue> value() = 0;
     virtual ~AggregateValue();
 protected:
@@ -38,7 +38,7 @@ class AggregateMaxValue : public AggregateValue {
 public:
     AggregateMaxValue() = default;
     ~AggregateMaxValue() = default;
-    RC add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     std::shared_ptr<TupleValue> value_;
@@ -48,7 +48,7 @@ class AggregateMinValue : public AggregateValue {
 public:
     AggregateMinValue() = default;
     ~AggregateMinValue() = default;
-    RC add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     std::shared_ptr<TupleValue> value_;
@@ -59,7 +59,7 @@ public:
     AggregateAvgValue(): sum(0), count(0) {
     }
     ~AggregateAvgValue() = default;
-    RC add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     float sum;
@@ -71,24 +71,23 @@ public:
     AggregateCountValue(): count(0) {
     }
     ~AggregateCountValue() = default;
-    RC add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     int count;
 };
 
-class Aggregate {
+class AggregateExeNode {
 public:
-    Aggregate();
-    ~Aggregate();
+    AggregateExeNode();
+    ~AggregateExeNode();
     
-    void add_value(std::shared_ptr<TupleValue> &tuple_value, const char* table_name, 
+    void add_value(const std::shared_ptr<TupleValue> &tuple_value, const char* table_name, 
             const char* attr_name, AggreType agg_type, AttrType attr_type) {
         std::string record_name(table_name);
         record_name += attr_name;
-        AggregateValue* value = record_map[record_name];
+        AggregateValue* value = record_map[record_name].get();
         if (value == nullptr) {
-            // 需要在析构函数中delete
             if (agg_type == COUNT) {
                 value = new AggregateCountValue();
             } else if (agg_type == MIN) {
@@ -98,7 +97,7 @@ public:
             } else if (agg_type == AVG) {
                 value = new AggregateAvgValue();
             }
-            record_map[record_name] = value;
+            record_map[record_name].reset(value);
         }
         value->add(tuple_value, attr_type);
     }
@@ -109,9 +108,8 @@ public:
         return record_map[record_name]->value();
     }
 private:
-    std::unordered_map<std::string, AggregateValue*> record_map;
+    std::unordered_map<std::string, std::unique_ptr<AggregateValue>> record_map;
 };
-
 
 /*
     do_aggregate(const Selects &selects, TupleSet &tuple_set, TupleSet &aggred_tupleset) {

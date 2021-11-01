@@ -15,6 +15,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 #include "common/log/log.h"
+#include "sql/executor/aggregate.h"
+#include <memory>
 
 Tuple::Tuple(const Tuple &other) {
     LOG_PANIC("Copy constructor of tuple is not supported");
@@ -253,18 +255,30 @@ void TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     const TupleSchema &input_schema = this->schema();
 
     const std::vector<TupleField> &tuple_fields = input_schema.fields();
-    for (auto& tuple : tuple_set.tuples()) {
+    if (tuple_fields.size() == 1 && 
+            tuple_fields[0].aggre_type != AggreType::NON && 
+            is_valid_aggre(tuple_fields[0].field_name(), tuple_fields[0].aggre_type)) {
+        // count(*), count(1), ....
         Tuple new_tuple;
-        for (auto& tuple_field : tuple_fields) {
-            int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
-            std::shared_ptr<TupleValue> value_ptr = tuple.get_pointer(i);
-            if (tuple_field.isaggre) {
-
-            } else {
-                new_tuple.add(value_ptr);
-            }
-        }
+        std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
+        new_tuple.add(value_ptr);
         add(std::move(new_tuple));
+    } else {
+        AggregateExeNode agg_exec_node;
+        for (auto& tuple : tuple_set.tuples()) {
+            Tuple new_tuple;
+            for (auto& tuple_field : tuple_fields) {
+                int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
+                const std::shared_ptr<TupleValue> &value_ptr = tuple.get_pointer(i);
+                if (tuple_field.isaggre) {
+                    agg_exec_node.add_value(value_ptr, tuple_field.table_name(), tuple_field.field_name(), tuple_field.aggre_type, tuple_field.type());
+                    // add nullptr
+                } else {
+                    new_tuple.add(value_ptr);
+                }
+            }
+            add(std::move(new_tuple));
+        }
     }
 }
 

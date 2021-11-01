@@ -23,7 +23,7 @@
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
 
-bool is_valid_aggre(char *attr, AggreType aggre_type) {  // number, float, *
+bool is_valid_aggre(const char *attr, AggreType aggre_type) {  // number, float, *
     if (strcmp("*", attr) == 0) {
         return aggre_type == COUNT;
     }
@@ -67,7 +67,7 @@ void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name) {
     attr_name[j] = '\0';
 }
 
-RC AggregateMinValue::add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+RC AggregateMinValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
     RC rc = RC::SUCCESS;
     if (tuple_value->is_null()) {
         return rc;
@@ -78,7 +78,7 @@ RC AggregateMinValue::add(std::shared_ptr<TupleValue> &tuple_value, AttrType typ
     return rc;
 }
 
-RC AggregateMaxValue::add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+RC AggregateMaxValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
     RC rc = RC::SUCCESS;
     if (tuple_value->is_null()) {
         return rc;
@@ -89,7 +89,7 @@ RC AggregateMaxValue::add(std::shared_ptr<TupleValue> &tuple_value, AttrType typ
     return rc;
 }
 
-RC AggregateAvgValue::add(std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+RC AggregateAvgValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
     RC rc = RC::SUCCESS;
     if (type != FLOATS && type != INTS) {
         rc = RC::GENERIC_ERROR;
@@ -109,6 +109,13 @@ RC AggregateAvgValue::add(std::shared_ptr<TupleValue> &tuple_value, AttrType typ
     return rc;
 }
 
+RC AggregateCountValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+    if (!tuple_value->is_null()) {
+        count += 1;
+    }
+    return RC::SUCCESS;
+}
+
 std::shared_ptr<TupleValue> AggregateMinValue::value() {
     // 需要在处理精度问题
     return value_;
@@ -120,8 +127,12 @@ std::shared_ptr<TupleValue> AggregateMaxValue::value() {
 }
 
 std::shared_ptr<TupleValue> AggregateAvgValue::value() {
-    // 需要在处理精度问题
     float avg = round(100*(float)sum/count)/100.0;
     std::shared_ptr<TupleValue> value = std::make_shared<FloatValue>(avg);
+    return value;
+}
+
+std::shared_ptr<TupleValue> AggregateCountValue::value() {
+    std::shared_ptr<TupleValue> value = std::make_shared<FloatValue>(count);
     return value;
 }

@@ -355,7 +355,8 @@ RC gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map,
 
             parse_attr(attr.attribute_name, attr.aggre_type, attr_name);
             Table *table = tables_map[table_name1];
-            if (attr.aggre_type != NON && is_valid_aggre(attr_name, attr.aggre_type)) {  // count(1) find the first one attr
+            if (attr.aggre_type != AggreType::NON && is_valid_aggre(attr_name, attr.aggre_type)) {  // count(1) find the first one attr
+                // count(*), count(1), ...
                 // 表的第一个属性
                 attr_type = table->table_meta().field(0)->type();
             } else {
@@ -428,7 +429,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
     if (selects.relation_num > 1) {
         // select t1.age from t1, t2 where t1.id = t2.id;
         // 就目前来说，如果查询包括多张表，那需要把每张的表的相关字段(t1.age, t1.id, t2.id)都列出来, 
-        // 方便笛。现在是把所有字段都列了出来，这个地方后面可能需要优化。
+        // 方便笛卡尔积做过滤。现在是把所有字段都列了出来，这个地方后面可能需要优化。
         TupleSchema::from_table(table, schema);
     } else {
         for (int i = selects.attr_num - 1; i >= 0; i--) {
@@ -491,9 +492,8 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
                     TupleSet &tuple_set) {
 
     TupleSchema scheam;
-    std::unordered_map<std::string, Table*> tables_map;
-
     std::unordered_map<std::string, const TupleSchema*> schemas_map;
+
     for (auto& tuple_set1 : tuple_sets) {
         std::string table_name(tuple_set1.get_schema().fields()[0].table_name());
         schemas_map[table_name] = &tuple_set1.get_schema();
@@ -508,7 +508,6 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
             conditions.push_back(&condition);
         }
     }
-
     tuple_set.set_schema(scheam);
     std::unordered_map<std::string, const Tuple*> tuples_map;
     return do_cross_join(tuple_sets, 0, conditions, tuple_set, tuples_map, schemas_map);

@@ -87,13 +87,14 @@ public:
 
   std::string to_string() const;
 
-public:
-  bool isaggre;
-  AggreType aggre_type;
 private:
   AttrType  type_;
   std::string table_name_;
   std::string field_name_;
+
+public:
+  bool isaggre;
+  AggreType aggre_type;
 };
 
 class TupleSchema {
