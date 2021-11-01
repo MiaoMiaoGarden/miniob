@@ -520,7 +520,7 @@ RC Table::scan_record_by_index(Trx *trx, IndexScanner *scanner, ConditionFilter 
     while (record_count < limit) {
         rc = scanner->next_entry(&rid);
         if (rc != RC::SUCCESS) {
-            if (RC::RECORD_EOF == rc) {
+            if (RC::RECORD_EOF == rc || RC::RECORD_NO_MORE_IDX_IN_MEM ==rc) {
                 rc = RC::SUCCESS;
                 break;
             }
