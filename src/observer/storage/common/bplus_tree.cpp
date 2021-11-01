@@ -1607,7 +1607,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
     RC rc;
     int i, tmp;
     RID rid;
-    if (compop == LESS_THAN || compop == LESS_EQUAL || compop == NOT_EQUAL) {
+    if (compop == LESS_THAN || compop == LESS_EQUAL || compop == NOT_EQUAL || compop == IS_NOT_COMPOP) {
         rc = get_first_leaf_page(page_num);
         if (rc != SUCCESS) {
             return rc;
@@ -1648,7 +1648,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
         for (i = 0; i < node->key_num; i++) {
             tmp = CompareKey(node->keys + i * file_header_.key_length, key, file_header_.attr_type,
                              file_header_.attr_length);
-            if (compop == EQUAL_TO || compop == GREAT_EQUAL) {
+            if (compop == EQUAL_TO || compop == GREAT_EQUAL || compop == IS_COMPOP) {
                 if (tmp >= 0) {
                     rc = disk_buffer_pool_->get_page_num(&page_handle, page_num);
                     if (rc != SUCCESS) {
@@ -1879,6 +1879,40 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
     if (comp_op_ == NO_OP) {
         return true;
     }
+
+    bool left_is_null = (*pkey=='!');
+    bool right_is_null = (*value_=='!');
+
+    if( left_is_null && right_is_null ){  // null comop null
+        if( comp_op_==IS_COMPOP ) {   // is
+        return true;
+        } else if( comp_op_==IS_NOT_COMPOP ) {   // is not
+        return false;
+        } else {     // >=、noop
+        return false;
+        }
+    } else if (left_is_null) {  // null comop (value/id,anything not null)
+        if(comp_op_ <=7 ){  // >=、noop
+        return false;
+        } else if (comp_op_ == IS_COMPOP){ // is 
+        return false;
+        } else if (comp_op_ == IS_NOT_COMPOP){  // is not
+        return true;
+        } else {
+        LOG_PANIC("Never should print this.");
+        }
+    } else if (right_is_null) {   // (value/id,anything not null) compop null
+        if(comp_op_ <=7 ){  // >=、noop
+        return false;
+        } else if (comp_op_ == IS_COMPOP){  // is
+        return false;
+        } else if (comp_op_ == IS_NOT_COMPOP){ // isnot
+        return true;
+        } else {
+        LOG_PANIC("Never should print this.");
+        }
+    }
+
 
     AttrType attr_type = index_handler_.file_header_.attr_type;
     switch (attr_type) {

@@ -85,6 +85,8 @@ QUOTE            [\'\"]
 [Nn][Oo][Tt]                             RETURN_TOKEN(NOT);
 [Nn][Uu][Ll][Ll]                         RETURN_TOKEN(NULL_TOKEN);
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]         RETURN_TOKEN(NULLABLE);
+{NOT}[\ ]*[Ii][Nn]                       RETURN_TOKEN(NOT_IN);
+[Ii][Nn]                                 RETURN_TOKEN(IN);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 {COU}{TOAGGRE}                                yylval->string=strdup(yytext); RETURN_TOKEN(TOCOUNT);
 {MA}{TOAGGRE}                                        yylval->string=strdup(yytext); RETURN_TOKEN(TOMAX);
