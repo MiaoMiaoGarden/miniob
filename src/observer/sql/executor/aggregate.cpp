@@ -38,34 +38,13 @@ bool is_valid_aggre(const char *attr, AggreType aggre_type) {  // number, float,
 
     for (; i < length; i++) {
         if (('0' <= attr[i] && attr[i] <= '9') || attr[i] == '.') {
-            if (i == length - 1) {
-                return true;
-            }
             continue;
-        } else {
-            return false;
-        }
+        } 
+        return false;
     }
+    return true;
 }
 
-void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name) {
-    if (aggre_type == NON) return;
-    int j = 0;
-    for (int i = 0; i < strlen(attribute_name); i++) {
-        if (i == 0) {
-            if (aggre_type == COUNT) {
-                i += 5;
-            } else {
-                i += 3;
-            }
-        }
-        if (attribute_name[i] == '(' || attribute_name[i] == ')' || attribute_name[i] == ' ') {
-            continue;
-        }
-        attr_name[j++] = attribute_name[i];
-    }
-    attr_name[j] = '\0';
-}
 
 RC AggregateMinValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
     RC rc = RC::SUCCESS;

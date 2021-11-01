@@ -22,27 +22,57 @@ RC parse(char *st, Query *sqln);
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
-void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name,int isaggre,int aggre_type) {
+
+void parse_attr(char *tmp, AggreType aggre_type) {
+    if (aggre_type == NON) 
+        return;
+
+    char attr_name[30];
+    int j = 0;
+    int len = strlen(tmp);
+    for (int i = 0; i < len; i++) {
+        if (i == 0) {
+            if (aggre_type == COUNT) {
+                i += 5;
+            } else {
+                i += 3;
+            }
+        }
+        if (tmp[i] == '(' || tmp[i] == ')' || tmp[i] == ' ') {
+            continue;
+        }
+        attr_name[j++] = tmp[i];
+    }
+    attr_name[j] = '\0';
+
+    len = strlen(attr_name);
+    strncpy(tmp, attr_name, len);
+    tmp[len] = '\0';
+}
+
+void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name, int isaggre, int aggre_type) {
     if (relation_name != nullptr) {
         relation_attr->relation_name = strdup(relation_name);
     } else {
         relation_attr->relation_name = nullptr;
     }
-    relation_attr->attribute_name = strdup(attribute_name);
-    if(isaggre==1){
-        if(aggre_type==0){
+    if(isaggre == 1){
+        if(aggre_type == 0){
             relation_attr->aggre_type = COUNT;
-        } else  if(aggre_type==1){
+        } else  if(aggre_type == 1){
             relation_attr->aggre_type = MIN;
-        } else  if(aggre_type==2){
+        } else  if(aggre_type == 2){
             relation_attr->aggre_type = MAX;
-        } else  if(aggre_type==3){
+        } else  if(aggre_type == 3){
             relation_attr->aggre_type = AVG;
         }
+        char* tmp = strdup(attribute_name);
+        parse_attr(tmp, relation_attr->aggre_type);
+        relation_attr->attribute_name = tmp;
     } else {
+        relation_attr->attribute_name = strdup(attribute_name);
         relation_attr->aggre_type = NON;
     }
-    
 }
 
 void relation_attr_destroy(RelAttr *relation_attr) {
@@ -57,25 +87,30 @@ void value_init_integer(Value *value, int v) {
     value->data = malloc(sizeof(v));
     memcpy(value->data, &v, sizeof(v));
 }
+
 void value_init_float(Value *value, float v) {
     value->type = FLOATS;
     value->data = malloc(sizeof(v));
     memcpy(value->data, &v, sizeof(v));
 }
+
 void value_init_string(Value *value, const char *v) {
     value->type = CHARS;
     value->data = strdup(v);
 }
+
 void value_init_date(Value *value, const char *v) {
     value->type = DATES;
     value->data = strdup(v);
 }
+
 void value_init_null(Value *value){
     value->type = NULLS;
     char null_[] = "!null";
     value->data = malloc(sizeof(null_));
     memcpy(value->data, &null_, sizeof(null_));
 }
+
 void value_destroy(Value *value) {
     value->type = UNDEFINED;
     free(value->data);
@@ -128,6 +163,7 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
     }
 
 }
+
 void attr_info_destroy(AttrInfo *attr_info) {
     free(attr_info->name);
     attr_info->name = nullptr;
@@ -137,6 +173,7 @@ void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
     selects->attributes[selects->attr_num++] = *rel_attr;
 }
+
 void selects_append_relation(Selects *selects, const char *relation_name) {
     selects->relations[selects->relation_num++] = strdup(relation_name);
 }
@@ -167,9 +204,8 @@ void selects_destroy(Selects *selects) {
     selects->condition_num = 0;
 }
 
-void
-inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num, size_t multi_insert_line,
-             extraValues extraValue[]) {
+void inserts_init(Inserts *inserts, const char *relation_name, Value values[],
+        size_t value_num, size_t multi_insert_line, extraValues extraValue[]) {
     assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
 
     inserts->relation_name = strdup(relation_name);
@@ -185,6 +221,7 @@ inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t
     inserts->value_num = value_num;
     inserts->multi_insert_lines = multi_insert_line;
 }
+
 void inserts_destroy(Inserts *inserts) {
     free(inserts->relation_name);
     inserts->relation_name = nullptr;
@@ -206,6 +243,7 @@ void deletes_set_conditions(Deletes *deletes, Condition conditions[], size_t con
     }
     deletes->condition_num = condition_num;
 }
+
 void deletes_destroy(Deletes *deletes) {
     for (size_t i = 0; i < deletes->condition_num; i++) {
         condition_destroy(&deletes->conditions[i]);
@@ -245,9 +283,11 @@ void updates_destroy(Updates *updates) {
 void create_table_append_attribute(CreateTable *create_table, AttrInfo *attr_info) {
     create_table->attributes[create_table->attribute_count++] = *attr_info;
 }
+
 void create_table_init_name(CreateTable *create_table, const char *relation_name) {
     create_table->relation_name = strdup(relation_name);
 }
+
 void create_table_destroy(CreateTable *create_table) {
     for (size_t i = 0; i < create_table->attribute_count; i++) {
         attr_info_destroy(&create_table->attributes[i]);
@@ -260,6 +300,7 @@ void create_table_destroy(CreateTable *create_table) {
 void drop_table_init(DropTable *drop_table, const char *relation_name) {
     drop_table->relation_name = strdup(relation_name);
 }
+
 void drop_table_destroy(DropTable *drop_table) {
     free(drop_table->relation_name);
     drop_table->relation_name = nullptr;
@@ -271,6 +312,7 @@ void create_index_init(CreateIndex *create_index, const char *index_name,
     create_index->relation_name = strdup(relation_name);
     create_index->attribute_name = strdup(attr_name);
 }
+
 void create_index_destroy(CreateIndex *create_index) {
     free(create_index->index_name);
     free(create_index->relation_name);
@@ -284,6 +326,7 @@ void create_index_destroy(CreateIndex *create_index) {
 void drop_index_init(DropIndex *drop_index, const char *index_name) {
     drop_index->index_name = strdup(index_name);
 }
+
 void drop_index_destroy(DropIndex *drop_index) {
     free((char *) drop_index->index_name);
     drop_index->index_name = nullptr;

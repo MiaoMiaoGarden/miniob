@@ -23,14 +23,14 @@
 #include "storage/trx/trx.h"
 
 bool is_valid_aggre(const char *attr, AggreType aggre_type);
-void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name);
 
 class AggregateValue {
 public:
     AggregateValue() = default;
     virtual RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) = 0;
     virtual std::shared_ptr<TupleValue> value() = 0;
-    virtual ~AggregateValue();
+    virtual ~AggregateValue() {
+    }
 protected:
 };
 
@@ -79,10 +79,10 @@ private:
 
 class AggregateExeNode {
 public:
-    AggregateExeNode();
-    ~AggregateExeNode();
+    AggregateExeNode() = default;
+    ~AggregateExeNode() = default;
     
-    void add_value(const std::shared_ptr<TupleValue> &tuple_value, const char* table_name, 
+    RC add_value(const std::shared_ptr<TupleValue> &tuple_value, const char* table_name, 
             const char* attr_name, AggreType agg_type, AttrType attr_type) {
         std::string record_name(table_name);
         record_name += attr_name;
@@ -99,13 +99,17 @@ public:
             }
             record_map[record_name].reset(value);
         }
-        value->add(tuple_value, attr_type);
+        return value->add(tuple_value, attr_type);
     }
 
     std::shared_ptr<TupleValue> get_value(const char* table_name, const char* attr_name) {
         std::string record_name(table_name);
         record_name += attr_name;
         return record_map[record_name]->value();
+    }
+
+    size_t size() {
+        return record_map.size();
     }
 private:
     std::unordered_map<std::string, std::unique_ptr<AggregateValue>> record_map;

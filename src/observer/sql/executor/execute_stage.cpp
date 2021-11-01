@@ -247,15 +247,18 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     //把 tables_map 放到 ExecuteStage 里面是不是更好一点，起到缓存作用
     std::unordered_map<std::string, Table*> tables_map;
-    for (int i = 0; i < selects.relation_num; i++) {
+    int relation_num = selects.relation_num;
+    for (int i = 0; i < relation_num; i++) {
         const char *table_name = selects.relations[i];
         Table *table = DefaultHandler::get_default().find_table(db, table_name);
-        if (nullptr == table) {
+        if (table == nullptr) {
             LOG_WARN("No such table [%s] in db [%s]", table_name, db);
             snprintf(response, sizeof(response), "FAILURE\n");
             session_event->set_response(response);
             return RC::SCHEMA_TABLE_NOT_EXIST;
         }
+        std::string table_name1(table_name);
+        tables_map[table_name1] = table;
     }
 
     // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的 select 执行节点
@@ -341,31 +344,28 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     return rc;
 }
 
-RC gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map, 
+RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map, 
                 const Selects &selects, TupleSchema &output_scheam){
 
     for (int i = selects.attr_num - 1; i >= 0; i--) {
         const RelAttr &attr = selects.attributes[i];
         if (attr.aggre_type != AggreType::NON) {
             // 聚合属性
-            char attr_name[100];
+            // char attr_name[100];
+            // parse_attr(attr.attribute_name, attr.aggre_type, attr_name);
             const char *table_name = attr.relation_name != nullptr ? attr.relation_name : selects.relations[0];
             std::string table_name1(table_name);
             AttrType attr_type;
 
-            parse_attr(attr.attribute_name, attr.aggre_type, attr_name);
             Table *table = tables_map[table_name1];
-            if (attr.aggre_type != AggreType::NON && is_valid_aggre(attr_name, attr.aggre_type)) {  // count(1) find the first one attr
+            if (attr.aggre_type != AggreType::NON && is_valid_aggre(attr.attribute_name, attr.aggre_type)) {  // count(1) find the first one attr
                 // count(*), count(1), ...
                 // 表的第一个属性
                 attr_type = table->table_meta().field(0)->type();
             } else {
-                attr_type = table->table_meta().field(attr_name)->type();
+                attr_type = table->table_meta().field(attr.attribute_name)->type();
             }
-            if (attr_type == INTS && attr.aggre_type == AVG) {
-                attr_type = FLOATS;
-            }
-            output_scheam.add(attr_type, selects.relations[0], attr.attribute_name);
+            output_scheam.add(attr_type, selects.relations[0], attr.attribute_name, true, attr.aggre_type);
         } else {
             // 表属性
             if (attr.relation_name == nullptr) {
@@ -378,21 +378,29 @@ RC gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map,
                         TupleSchema::from_table(table, schema);
                         output_scheam.append(schema);
                     }
+                    break;
+                } else if (selects.relation_num == 1) {
+                    std::string table_name(selects.relations[0]);
+                    Table* table = tables_map[table_name];
+                    RC rc = schema_add_field(table, attr.attribute_name, output_scheam);
+                    if (rc != RC::SUCCESS) {
+                        return rc;
+                    }
                 } else {
                     return RC::SCHEMA_TABLE_NOT_EXIST;
                 }
-                break;
-            } 
-            std::string table_name(attr.relation_name);
-            Table* table = tables_map[table_name];
-            if (strcmp("*", attr.attribute_name) == 0) {
-                TupleSchema schema;
-                TupleSchema::from_table(table, schema);
-                output_scheam.append(schema);
-            } else {
-                RC rc = schema_add_field(table, attr.attribute_name, output_scheam);
-                if (rc != RC::SUCCESS) {
-                    return rc;
+            } else { 
+                std::string table_name(attr.relation_name);
+                Table* table = tables_map[table_name];
+                if (strcmp("*", attr.attribute_name) == 0) {
+                    TupleSchema schema;
+                    TupleSchema::from_table(table, schema);
+                    output_scheam.append(schema);
+                } else {
+                    RC rc = schema_add_field(table, attr.attribute_name, output_scheam);
+                    if (rc != RC::SUCCESS) {
+                        return rc;
+                    }
                 }
             }
         }
@@ -435,10 +443,12 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
         for (int i = selects.attr_num - 1; i >= 0; i--) {
             const RelAttr &attr = selects.attributes[i];
             if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
+                /*
                 char parsed[100];
                 parse_attr(attr.attribute_name, attr.aggre_type, parsed); // if not aggre, will do nothing and return
+                */
                 if (0 == strcmp("*", attr.attribute_name) || 
-                        (attr.aggre_type != NON && is_valid_aggre(parsed, attr.aggre_type))) {
+                        (attr.aggre_type != NON && is_valid_aggre(attr.attribute_name, attr.aggre_type))) {
                     // 列出这张表所有字段
                     TupleSchema::from_table(table, schema);
                     break; // 没有校验，给出* 之后，再写字段的错误
@@ -446,8 +456,6 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                     // 列出这张表相关字段
                     RC rc = RC::SUCCESS;
                     if (attr.aggre_type != NON) {
-                        rc = schema_add_field(table, parsed, schema);
-                    } else {
                         rc = schema_add_field(table, attr.attribute_name, schema);
                     }
                     if (rc != RC::SUCCESS) {
@@ -510,7 +518,7 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
     }
     tuple_set.set_schema(scheam);
     std::unordered_map<std::string, const Tuple*> tuples_map;
-    return do_cross_join(tuple_sets, 0, conditions, tuple_set, tuples_map, schemas_map);
+    return do_cross_join(tuple_sets, tuple_sets.size() - 1, conditions, tuple_set, tuples_map, schemas_map);
 }
 
 RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index, 
@@ -519,9 +527,7 @@ RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
                     std::unordered_map<std::string, const Tuple*> &tuples_map,
                     std::unordered_map<std::string, const TupleSchema*> &schemas_map) {
 
-    int size = tuple_sets.size();
-
-    if (index == size) {
+    if (index == -1) {
         for (auto &condition: conditions) {
             std::string left_table(condition->left_attr.relation_name);
             char *left_attr = condition->left_attr.attribute_name;
@@ -558,13 +564,14 @@ RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
     }
 
     const TupleSet &tuple_set1 = tuple_sets[index];
-    const std::vector<Tuple> &tuples = tuple_set1.tuples();
     const std::vector<TupleField> &fields = tuple_set1.get_schema().fields();
+    const std::vector<Tuple> &tuples = tuple_set1.tuples();
     std::string table_name(fields[0].table_name());
 
-    for (int i = 0; i < tuples.size(); i++) {
+    int size = tuples.size();
+    for (int i = 0; i < size; i++) {
         tuples_map[table_name] = &tuples[i];
-        RC rc = do_cross_join(tuple_sets, index + 1, conditions, tuple_set, tuples_map, schemas_map);
+        RC rc = do_cross_join(tuple_sets, index - 1, conditions, tuple_set, tuples_map, schemas_map);
         if (rc != RC::SUCCESS) {
             return rc;
         }

@@ -103,6 +103,7 @@ public:
   ~TupleSchema() = default;
 
   void add(AttrType type, const char *table_name, const char *field_name);
+  void add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType agg_type);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
@@ -140,7 +141,7 @@ public:
   ~TupleSet() = default;
 
   void set_schema(const TupleSchema &schema);
-  void set_tuple_set(TupleSet&& tuple_set);
+  RC set_tuple_set(TupleSet&& tuple_set);
 
   const TupleSchema &get_schema() const;
 
