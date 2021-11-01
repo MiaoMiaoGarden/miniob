@@ -1050,7 +1050,9 @@ bool Table::isValidDate(char *date) {
         for (int i = 0; i < 2; i++) {
             date[8 + i] = str[i];
         }
+        date[10] = '/0';
     }
+//    date[10] = '/0';
     int year = atoi(dates[0].c_str());
     bool isLeap = (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
     if (year > 2038) {

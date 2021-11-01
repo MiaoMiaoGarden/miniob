@@ -1855,7 +1855,7 @@ RC BplusTreeScanner::get_next_idx_in_memory(RID *rid) {
             LOG_ERROR("Failed to get data from disk buffer pool. rc=%s", strrc);
             return rc;
         }
-
+//        RID
         node = index_handler_.get_index_node(pdata);
         for (; index_in_node_ < node->key_num; index_in_node_++) {
             if (satisfy_condition(node->keys + index_in_node_ * index_handler_.file_header_.key_length)) {

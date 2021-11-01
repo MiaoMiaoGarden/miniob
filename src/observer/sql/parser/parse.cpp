@@ -95,6 +95,7 @@ void condition_init(Condition *condition, CompOp comp,
     }
 }
 void condition_destroy(Condition *condition) {
+//    if (condition->)
     if (condition->left_is_attr) {
         relation_attr_destroy(&condition->left_attr);
     } else {
@@ -111,7 +112,7 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
     attr_info->name = strdup(name);
     attr_info->type = type;
     if (type == DATES) {
-        attr_info->length = 10;
+        attr_info->length = 10 + 1;
     } else {
         attr_info->length = length;
     }
