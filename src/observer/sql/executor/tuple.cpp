@@ -150,16 +150,48 @@ void TupleSchema::print(std::ostream &os, bool flag) const {
 
     for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
          iter != end; ++iter) {
+        if (iter->isaggre) {
+            if (iter->aggre_type == AggreType::MIN) {
+                os << "min(";
+            } else if (iter->aggre_type == AggreType::MAX) {
+                os << "max(";
+            } else if (iter->aggre_type == AggreType::AVG) {
+                os << "avg(";
+            } else if (iter->aggre_type == AggreType::COUNT) {
+                os << "count(";
+            }
+        }
         if (flag) {
             os << iter->table_name() << ".";
         }
-        os << iter->field_name() << " | ";
+        os << iter->field_name();
+        if (iter->isaggre) {
+            os << ")";
+        }
+        os << " | ";
+    }
+
+    if (fields_.back().isaggre) {
+        if (fields_.back().aggre_type == AggreType::MIN) {
+            os << "min(";
+        } else if (fields_.back().aggre_type == AggreType::MAX) {
+            os << "max(";
+        } else if (fields_.back().aggre_type == AggreType::AVG) {
+            os << "avg(";
+        } else if (fields_.back().aggre_type == AggreType::COUNT) {
+            os << "count(";
+        }
     }
 
     if (flag) {
         os << fields_.back().table_name() << ".";
     }
-    os << fields_.back().field_name() << std::endl;
+    os << fields_.back().field_name();
+    if (fields_.back().isaggre) {
+        os << ")";
+    }
+
+    os << std::endl;
 }
 
 void TupleSchema::print_with_tablename(std::ostream &os) const {
