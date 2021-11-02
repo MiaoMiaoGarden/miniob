@@ -328,10 +328,10 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
         Tuple new_tuple;
         int index = 0;
         for (auto& tuple_field : tuple_fields) {
-            if (count_flag) {
+            if (tuple_field.aggre_type == AggreType::COUNT && 
+                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
                 std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
                 new_tuple.add(value_ptr);
-                count_flag = 0;
             } else {
                 const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index);
                 // 处理精度问题
