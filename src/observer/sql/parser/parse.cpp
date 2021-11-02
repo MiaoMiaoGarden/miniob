@@ -68,7 +68,14 @@ void value_init_string(Value *value, const char *v) {
 }
 void value_init_date(Value *value, const char *v) {
     value->type = DATES;
-    value->data = strdup(v);
+    char *date = strdup(v);
+    const char *delim = "-";
+    int year = atoi(strtok(date, delim));
+    int month = atoi(strtok(NULL, delim));
+    int day = atoi(strtok(NULL, delim));
+    int intdate = year * 10000 + month * 100 + day;
+    value->data = malloc(sizeof(intdate));
+    memcpy(value->data, &intdate, sizeof(intdate));
 }
 void value_destroy(Value *value) {
     value->type = UNDEFINED;
