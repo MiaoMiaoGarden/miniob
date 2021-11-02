@@ -82,11 +82,9 @@ public:
     AggregateExeNode() = default;
     ~AggregateExeNode() = default;
     
-    RC add_value(const std::shared_ptr<TupleValue> &tuple_value, const char* table_name, 
-            const char* attr_name, AggreType agg_type, AttrType attr_type) {
-        std::string record_name(table_name);
-        record_name += attr_name;
-        AggregateValue* value = record_map[record_name].get();
+    RC add_value(const std::shared_ptr<TupleValue> &tuple_value, int index, 
+                    AggreType agg_type, AttrType attr_type) {
+        AggregateValue* value = record_map[index].get();
         if (value == nullptr) {
             if (agg_type == COUNT) {
                 value = new AggregateCountValue();
@@ -97,22 +95,20 @@ public:
             } else if (agg_type == AVG) {
                 value = new AggregateAvgValue();
             }
-            record_map[record_name].reset(value);
+            record_map[index].reset(value);
         }
         return value->add(tuple_value, attr_type);
     }
 
-    std::shared_ptr<TupleValue> get_value(const char* table_name, const char* attr_name) {
-        std::string record_name(table_name);
-        record_name += attr_name;
-        return record_map[record_name]->value();
+    std::shared_ptr<TupleValue> get_value(int index) {
+        return record_map[index]->value();
     }
 
     size_t size() {
         return record_map.size();
     }
 private:
-    std::unordered_map<std::string, std::unique_ptr<AggregateValue>> record_map;
+    std::unordered_map<int, std::unique_ptr<AggregateValue>> record_map;
 };
 
 /*

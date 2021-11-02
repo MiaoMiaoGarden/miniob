@@ -289,21 +289,20 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     const TupleSchema &output_schema = tuple_set.schema();
     const TupleSchema &input_schema = this->schema();
     const std::vector<TupleField> &tuple_fields = input_schema.fields();
-
     RC rc = RC::SUCCESS;
-    if (tuple_fields.size() == 1 && 
-            tuple_fields[0].aggre_type != AggreType::NON && 
-            is_valid_aggre(tuple_fields[0].field_name(), tuple_fields[0].aggre_type)) {
-        // count(*), count(1), ....
+    bool count_flag = 0;
+
+    AggregateExeNode agg_exec_node;
+    for (auto& tuple : tuple_set.tuples()) {
         Tuple new_tuple;
-        std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
-        new_tuple.add(value_ptr);
-        add(std::move(new_tuple));
-    } else {
-        AggregateExeNode agg_exec_node;
-        for (auto& tuple : tuple_set.tuples()) {
-            Tuple new_tuple;
-            for (auto& tuple_field : tuple_fields) {
+        int index = 0;
+        for (auto& tuple_field : tuple_fields) {
+            if (tuple_field.aggre_type == AggreType::COUNT && 
+                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
+                // 这个地方可以优化，对于 select count(*) from t; 这种情况，可以单独判断
+                // COUNT(*), COUNT(1), ...
+                count_flag = 1;
+            } else {
                 int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
                 if (i == -1) {
                     rc = RC::SCHEMA_FIELD_NOT_EXIST;
@@ -311,7 +310,7 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
                 }
                 const std::shared_ptr<TupleValue> &value_ptr = tuple.get_pointer(i);
                 if (tuple_field.isaggre) {
-                    rc = agg_exec_node.add_value(value_ptr, tuple_field.table_name(), tuple_field.field_name(), tuple_field.aggre_type, tuple_field.type());
+                    rc = agg_exec_node.add_value(value_ptr, index, tuple_field.aggre_type, tuple_field.type());
                     if (rc != RC::SUCCESS) {
                         return rc;
                     }
@@ -319,14 +318,22 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
                     new_tuple.add(value_ptr);
                 }
             }
-            if (new_tuple.size() != 0) {
-                add(std::move(new_tuple));
-            }
+            index += 1;
         }
-        if (agg_exec_node.size()) {
-            Tuple new_tuple;
-            for (auto& tuple_field : tuple_fields) {
-                std::shared_ptr<TupleValue> value_ptr = agg_exec_node.get_value(tuple_field.table_name(), tuple_field.field_name());
+        if (new_tuple.size() != 0) {
+            add(std::move(new_tuple));
+        }
+    }
+    if (agg_exec_node.size() || count_flag) {
+        Tuple new_tuple;
+        int index = 0;
+        for (auto& tuple_field : tuple_fields) {
+            if (count_flag) {
+                std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
+                new_tuple.add(value_ptr);
+                count_flag = 0;
+            } else {
+                const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index);
                 // 处理精度问题
                 if (tuple_field.type() == FLOATS && 
                         (tuple_field.aggre_type == AggreType::MAX ||
@@ -338,8 +345,9 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
                     new_tuple.add(value_ptr);
                 }
             }
-            add(std::move(new_tuple));
+            index += 1;
         }
+        add(std::move(new_tuple));
     }
     return rc;
 }
