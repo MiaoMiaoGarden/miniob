@@ -412,15 +412,67 @@ RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, Tuple
     return RC::SUCCESS;
 }
 
+bool isLeapYear_(int year){
+    if ((year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0))
+    {
+        return true;
+    }
+    return false;
+}
+bool is_date(int year, int mon, int day) {
+    int Maxdays[13] = { 0,31,28,31,30,31,30,31,31,30,31,30,31 };
+    if (mon < 1 || mon > 12) // 无效月
+    {
+        return false;
+    }
+    if (year < 1970) // 无效年（年的有效性不好界定，就认为小于0为无效）
+    {
+        return false;
+    }
+    if (mon == 2 && day == 29 && isLeapYear_(year))  //闰年2月29日
+    {
+        return true;
+    }
+    if (day<1 || day>Maxdays[mon])// 无效日
+    {
+        return false;
+    }
+    return true; //日期有效，返回真
+}
 
+bool is_valid_date(int date) {
+    int year = date / 10000;
+    int month = (date - year * 10000) / 100;
+    int day = date - year * 10000 - month * 100;
+    return is_date(year, month, day);
+}
 // 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
 // 需要补充上这一部分. 校验部分也可以放在resolve，不过跟execution放一起也没有关系
 RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_event) {
-
+    std::stringstream ss;
     RC rc = RC::SUCCESS;
     Session *session = session_event->get_client()->session;
     Trx *trx = session->current_trx();
     const Selects &selects = sql->sstr.selection;
+    for(int i = 0; i < selects.condition_num; i++) {
+        if(!selects.conditions[i].left_is_attr &&
+           selects.conditions[i].left_value.type == DATES &&
+           !is_valid_date(*((int *)selects.conditions[i].left_value.data))) {
+            rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+            break;
+        }
+        if(!selects.conditions[i].right_is_attr &&
+           selects.conditions[i].right_value.type == DATES &&
+           !is_valid_date(*((int *)selects.conditions[i].right_value.data))) {
+            rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+            break;
+        }
+    }
+    if(rc != RC::SUCCESS) {
+        ss<<(rc == RC::SUCCESS ? " " : "FAILURE")<<"\n";
+        session_event->set_response(ss.str());
+        return rc;
+    }
     // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
     std::vector<SelectExeNode *> select_nodes;
     for (size_t i = 0; i < selects.relation_num; i++) {
@@ -467,7 +519,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         }
     }
 
-    std::stringstream ss;
     if (select_nodes.size() > 1) {
         TupleSet tuple_set;
         /*
