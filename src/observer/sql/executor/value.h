@@ -106,7 +106,6 @@ public:
 private:
   std::string value_;
 };
-
 class DateValue : public TupleValue {
 public:
     explicit DateValue(int value) : value_(value) {
@@ -136,4 +135,6 @@ public:
 private:
     int value_;
 };
+
+
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_

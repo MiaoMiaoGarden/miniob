@@ -68,15 +68,7 @@ void value_init_string(Value *value, const char *v) {
 }
 void value_init_date(Value *value, const char *v) {
     value->type = DATES;
-    char *date = strdup(v);
-    const char *delim = "-";
-    int year = atoi(strtok(date, delim));
-    int month = atoi(strtok(NULL, delim));
-    int day = atoi(strtok(NULL, delim));
-    int intdate = year * 10000 + month * 100 + day;
-    value->data = malloc(sizeof(intdate));
-    memcpy(value->data, &intdate, sizeof(intdate));
-
+    value->data = strdup(v);
 }
 void value_destroy(Value *value) {
     value->type = UNDEFINED;
@@ -103,7 +95,6 @@ void condition_init(Condition *condition, CompOp comp,
     }
 }
 void condition_destroy(Condition *condition) {
-//    if (condition->)
     if (condition->left_is_attr) {
         relation_attr_destroy(&condition->left_attr);
     } else {
@@ -120,7 +111,7 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
     attr_info->name = strdup(name);
     attr_info->type = type;
     if (type == DATES) {
-        attr_info->length = 10 + 1;
+        attr_info->length = 10;
     } else {
         attr_info->length = length;
     }

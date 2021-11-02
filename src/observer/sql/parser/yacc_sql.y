@@ -95,8 +95,6 @@ ParserContext *get_context(yyscan_t scanner)
         FROM
         WHERE
         AND
-        IN
-        NOT
         SET
         ON
         LOAD
@@ -657,6 +655,8 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+    ;
+
 comOp:
   	  EQ { CONTEXT->comp = EQUAL_TO; }
     | LT { CONTEXT->comp = LESS_THAN; }

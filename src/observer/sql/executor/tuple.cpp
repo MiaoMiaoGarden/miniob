@@ -61,10 +61,7 @@ void Tuple::add(float value) {
 void Tuple::add(const char *s, int len) {
     add(new StringValue(s, len));
 }
-void Tuple::add(int value, bool flag) {
-    if(flag)
-        add(new DateValue(value));
-}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {

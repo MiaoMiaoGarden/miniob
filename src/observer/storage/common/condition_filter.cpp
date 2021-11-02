@@ -58,7 +58,6 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
   return RC::SUCCESS;
 }
 
-
 RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 {
   const TableMeta &table_meta = table.table_meta();
@@ -110,6 +109,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.attr_length = 0;
     right.attr_offset = 0;
   }
+
   // 校验和转换
   //  if (!field_type_compare_compatible_table[type_left][type_right]) {
   //    // 不能比较的两个字段， 要把信息传给客户端
@@ -123,7 +123,15 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
   return init(left, right, type_left, condition.comp);
 }
-
+std::vector<std::string> split_(const std::string &s, char delim) {
+    std::stringstream ss(s);
+    std::string item;
+    std::vector<std::string> elems;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
+    }
+    return elems;
+}
 bool DefaultConditionFilter::filter(const Record &rec) const
 {
   char *left_value = nullptr;
@@ -159,12 +167,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       float right = *(float *)right_value;
       cmp_result = (int)(left - right);
     } break;
-      case DATES: {
-          // 没有考虑大小端问题
-          // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-          int left = *(int *)left_value;
-          int right = *(int *)right_value;
-          cmp_result = left - right;
+    case DATES: {
+        int left = *(int *)left_value;
+        int right = *(int *)right_value;
+        cmp_result = left - right;
       }
           break;
     default: {

@@ -134,15 +134,16 @@ void DefaultStorageStage::cleanup() {
     }
     LOG_TRACE("Exit");
 }
-bool isLeapYear(int year){
-    if ((year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0))
-    {
+
+bool isLeapYear(int year) {
+    if ((year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0)) {
         return true;
     }
     return false;
 }
+
 bool isDate(int year, int mon, int day) {
-    int Maxdays[13] = { 0,31,28,31,30,31,30,31,31,30,31,30,31 };
+    int Maxdays[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     if (mon < 1 || mon > 12) // 无效月
     {
         return false;
@@ -155,12 +156,13 @@ bool isDate(int year, int mon, int day) {
     {
         return true;
     }
-    if (day<1 || day>Maxdays[mon])// 无效日
+    if (day < 1 || day > Maxdays[mon])// 无效日
     {
         return false;
     }
     return true; //日期有效，返回真
 }
+
 bool isValidDate(int date) {
     int year = date / 10000;
     int month = (date - year * 10000) / 100;
@@ -202,9 +204,8 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
             }
 
-            if (rc == RC::SUCCESS) {
+            if (rc == RC::SUCCESS)
                 rc = handler_->insert_record(current_trx, current_db, table_name, &inserts);
-            }
             snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
         }
             break;
@@ -230,10 +231,9 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
                 }
             }
 
-            if (rc == RC::SUCCESS) {
+            if (rc == RC::SUCCESS)
                 rc = handler_->update_record(current_trx, current_db, table_name, field_name, &updates.value,
                                              updates.condition_num, updates.conditions, &updated_count);
-            }
             snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
         }
             break;
@@ -255,11 +255,9 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
                     break;
                 }
             }
-            if (rc == RC::SUCCESS) {
+            if (rc == RC::SUCCESS)
                 rc = handler_->delete_record(current_trx, current_db, table_name, deletes.condition_num,
-                                             deletes.conditions,
-                                             &deleted_count);
-            }
+                                             deletes.conditions, &deleted_count);
             snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
         }
             break;
@@ -421,7 +419,7 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
                 value_init_string(&record_values[i], file_value.c_str());
             }
                 break;
-            case DATES: {
+            case DATES: { // lijingkan
                 deserialize_stream.clear();
                 deserialize_stream.str(file_value);
 
@@ -436,6 +434,7 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
                     value_init_integer(&record_values[i], int_value);
                 }
             }
+                break;
             default: {
                 errmsg << "Unsupported field type to loading: " << field->type();
                 rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
