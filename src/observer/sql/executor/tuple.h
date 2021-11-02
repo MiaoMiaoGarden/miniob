@@ -40,7 +40,7 @@ public:
   void add(int value);
   void add(float value);
   void add(const char *s, int len);
-
+  void add(int value, bool flag);
   const std::vector<std::shared_ptr<TupleValue>> &values() const {
     return values_;
   }

@@ -61,6 +61,8 @@ QUOTE            [\'\"]
 [Ff][Rr][Oo][Mm]                      	 RETURN_TOKEN(FROM);
 [Ww][Hh][Ee][Rr][Ee]                  	 RETURN_TOKEN(WHERE);
 [Aa][Nn][Dd]                             RETURN_TOKEN(AND);
+[Ii][Nn]                                 RETURN_TOKEN(IN);
+[Nn][Oo][Tt]                             RETURN_TOKEN(NOT);
 [Ii][Nn][Ss][Ee][rR][tT]                 RETURN_TOKEN(INSERT);
 [Ii][Nn][Tt][Oo]					 	             RETURN_TOKEN(INTO);
 [Vv][Aa][Ll][Uu][Ee][Ss]                 RETURN_TOKEN(VALUES);
@@ -83,7 +85,6 @@ QUOTE            [\'\"]
 {MA}{TOAGGRE}                                        yylval->string=strdup(yytext); RETURN_TOKEN(TOMAX);
 {MI}{TOAGGRE}                                          yylval->string=strdup(yytext); RETURN_TOKEN(TOMIN);
 {AV}{TOAGGRE}                                          yylval->string=strdup(yytext); RETURN_TOKEN(TOAVG);
-{QUOTE}[0-9]?[0-9]?[0-9]?[0-9]-[0-9]?[0-9]-[0-9]?[0-9]{QUOTE}                                   yylval->string=strdup(yytext); RETURN_TOKEN(DATE);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);
 
@@ -94,7 +95,7 @@ QUOTE            [\'\"]
 "<"                                      RETURN_TOKEN(LT);
 ">="                                     RETURN_TOKEN(GE);
 ">"                                      RETURN_TOKEN(GT);
-
+{QUOTE}[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}{QUOTE}                                  yylval->string=strdup(yytext); RETURN_TOKEN(DATE);
 {QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 .						                             printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%

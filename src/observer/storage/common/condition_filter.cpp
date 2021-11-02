@@ -57,89 +57,8 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
   comp_op_ = comp_op;
   return RC::SUCCESS;
 }
-std::vector<std::string> split_(const std::string &s, char delim) {
-    std::stringstream ss(s);
-    std::string item;
-    std::vector<std::string> elems;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
-    }
-    return elems;
-}
 
-bool isValidDate_fileter(char *date) {
-    const std::vector<std::string> &dates = split_(date, '-');
-    if (dates.size() != 3) {
-        LOG_ERROR("Failed to parser date filed");
-        return false;
-    }
-    int year_len = 4, month_len = 2, day_len = 2;
-    // 1. judge year
-    if (dates[0].size() < year_len) {
-        std::string str = dates[0];
-        int diff = year_len - dates[0].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff, date, strlen(date) + diff);
-        for (int i = 0; i < diff; i++) {
-            date[i] = str[i];
-        }
-    }
-    if (dates[1].size() < month_len) {
-        std::string str = dates[1];
-        int diff = month_len - dates[1].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff + year_len + 1, date + year_len + 1, strlen(date) + diff);
-        for (int i = 0; i < month_len; i++) {
-            date[year_len + 1 + i] = str[i];
-        }
-    }
-    if (dates[2].size() < day_len) {
-        std::string str = dates[2];
-        int diff = 2 - dates[2].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff + 8, date + 8, strlen(date) + diff);
-        for (int i = 0; i < 2; i++) {
-            date[8 + i] = str[i];
-        }
-    }
-    int year = atoi(dates[0].c_str());
-    bool isLeap = (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
-    if (year > 2038) {
-        LOG_ERROR("year is should not bigger than 2038!");
-        return false;
-    }
-    int month = atoi(dates[1].c_str());
-    int day = atoi(dates[2].c_str());
-    if (year == 2038 && month > 2) {
-        LOG_ERROR("if year == 2038, month is should not bigger than 2");
-        return false;
-    }
-    if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 11 || month == 12) {
-        if (day <= 0 || day > 31) {
-            LOG_ERROR("%d month has %d day is should not bigger than 31 or smaller than 0", month, day);
-            return false;
-        }
-    } else if (month == 2) {
-        if (day <= 0 || day > 28 + isLeap) {
-            LOG_ERROR(
-                    "%d year leap state is  %d . so %d month is should not have bigger than 28 (29) or smaller than 0 days",
-                    year, isLeap, month);
-            return false;
-        }
-    } else {
-        if (day <= 0 || day > 30) {
-            LOG_ERROR("%d month is should not have bigger than 30 or smaller than 0 days", month);
-            return false;
-        }
-    }
-    return true;
-}
+
 RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 {
   const TableMeta &table_meta = table.table_meta();
@@ -191,16 +110,6 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.attr_length = 0;
     right.attr_offset = 0;
   }
-  if (type_left == DATES && !left.is_attr) {
-      if (!isValidDate_fileter(static_cast<char *>(left.value))) {
-          return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-      }
-  }
-    if (type_right == DATES && !right.is_attr) {
-        if (!isValidDate_fileter(static_cast<char *>(right.value))) {
-            return  RC::SCHEMA_FIELD_TYPE_MISMATCH;
-        }
-    }
   // 校验和转换
   //  if (!field_type_compare_compatible_table[type_left][type_right]) {
   //    // 不能比较的两个字段， 要把信息传给客户端
@@ -250,21 +159,12 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       float right = *(float *)right_value;
       cmp_result = (int)(left - right);
     } break;
-    case DATES: {
-          std::vector<std::string> left = split_((char *) left_value, '-');
-          std::vector<std::string> right = split_((char *) right_value, '-');
-          int l_year = atoi(left[0].c_str()), r_year = atoi(right[0].c_str());
-          if (l_year != r_year) {
-              cmp_result = l_year - r_year;
-              break;
-          }
-          int l_month = atoi(left[1].c_str()), r_month = atoi(right[1].c_str());
-          if (l_month != r_month) {
-              cmp_result = l_month - r_month;
-          } else {
-              int l_day = atoi(left[2].c_str()), r_day = atoi(right[2].c_str());
-              cmp_result = l_day - r_day;
-          }
+      case DATES: {
+          // 没有考虑大小端问题
+          // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
+          int left = *(int *)left_value;
+          int right = *(int *)right_value;
+          cmp_result = left - right;
       }
           break;
     default: {
