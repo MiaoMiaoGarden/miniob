@@ -102,7 +102,6 @@ QUOTE            [\'\"]
 ">"                                      RETURN_TOKEN(GT);
 
 {QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
-[A-Za-z0-9_/\.\-]*                     RETURN_TOKEN(ANYTHING);
 .						                             printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%
 

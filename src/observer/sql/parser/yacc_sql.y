@@ -122,7 +122,6 @@ ParserContext *get_context(yyscan_t scanner)
 		BY
 		ASC
 		ORDER
-		ANYTHING
 
 
 %union {
