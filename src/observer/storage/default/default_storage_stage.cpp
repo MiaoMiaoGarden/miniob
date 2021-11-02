@@ -321,7 +321,7 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
 
           rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
         } else {
-          value_init_integer(&record_values[i], int_value);
+          value_init_integer_int(&record_values[i], int_value);
         }
       }
 
@@ -337,7 +337,7 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
               << "'(field index:" << i << ")"; 
           rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
         } else {
-          value_init_float(&record_values[i], float_value);
+          value_init_float_float(&record_values[i], float_value);
         }
       }
       break;

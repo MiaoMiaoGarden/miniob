@@ -27,11 +27,6 @@ NOT              [Nn][Oo][Tt]
 NULL             [Nn][Uu][Ll][Ll]
 WHITE_SAPCE      [\ \t\b\f]
 DIGIT            [0-9]+
-COU              [Cc][Oo][Uu][Nn][Tt]
-MA               [Mm][Aa][Xx] 
-MI               [Mm][Ii][Nn]
-AV               [Aa][Vv][Gg]
-TOAGGRE          [\(][A-Za-z0-9_*\-\+\ \,\.]*[\)]
 ID               [A-Za-z_]+[A-Za-z0-9_]*
 DOT              \.
 QUOTE            [\'\"]
@@ -42,15 +37,23 @@ QUOTE            [\'\"]
 {WHITE_SAPCE}                           // ignore whitespace
 \n																						 ;
 
-[\-]?{DIGIT}+					                   yylval->number=atoi(yytext); RETURN_TOKEN(NUMBER);
-[\-]?{DIGIT}+{DOT}{DIGIT}+				       yylval->floats=(float)(atof(yytext)); RETURN_TOKEN(FLOAT);
+[\-]?{DIGIT}+					                 yylval->string=strdup(yytext);    RETURN_TOKEN(NUMBER);
+[\-]?{DIGIT}+{DOT}{DIGIT}+				       yylval->string=strdup(yytext);  RETURN_TOKEN(FLOAT);
 
 ";"                 	 				           RETURN_TOKEN(SEMICOLON);
 {DOT}                 					         RETURN_TOKEN(DOT);
 "*"                   					         RETURN_TOKEN(STAR);
+[Cc][Oo][Uu][Nn][Tt]                             RETURN_TOKEN(COU);
+[Mm][Aa][Xx]                                     RETURN_TOKEN(MA);
+[Mm][Ii][Nn]                                     RETURN_TOKEN(MI);
+[Aa][Vv][Gg]                                     RETURN_TOKEN(AV);
 [Ee][Xx][Ii][Tt]						             RETURN_TOKEN(EXIT);
 [Hh][Ee][Ll][Pp]                    	   RETURN_TOKEN(HELP);
+[Aa][Ss][Cc]                             RETURN_TOKEN(ASC);
 [Dd][Ee][Ss][Cc]                         RETURN_TOKEN(DESC);
+[Gg][Rr][Oo][Uu][Pp]                     RETURN_TOKEN(GROUP);
+[Oo][Rr][Dd][Ee][Rr]                     RETURN_TOKEN(ORDER);
+[Bb][Yy]                                 RETURN_TOKEN(BY);
 [Cc][Rr][Ee][Aa][Tt][Ee]                 RETURN_TOKEN(CREATE);
 [Dd][Rr][Oo][Pp]                    	   RETURN_TOKEN(DROP);
 [Tt][Aa][Bb][Ll][Ee]					           RETURN_TOKEN(TABLE);
@@ -85,13 +88,7 @@ QUOTE            [\'\"]
 [Nn][Oo][Tt]                             RETURN_TOKEN(NOT);
 [Nn][Uu][Ll][Ll]                         RETURN_TOKEN(NULL_TOKEN);
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]         RETURN_TOKEN(NULLABLE);
-{NOT}[\ ]*[Ii][Nn]                       RETURN_TOKEN(NOT_IN);
-[Ii][Nn]                                 RETURN_TOKEN(IN);
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
-{COU}{TOAGGRE}                                yylval->string=strdup(yytext); RETURN_TOKEN(TOCOUNT);
-{MA}{TOAGGRE}                                        yylval->string=strdup(yytext); RETURN_TOKEN(TOMAX);
-{MI}{TOAGGRE}                                          yylval->string=strdup(yytext); RETURN_TOKEN(TOMIN);
-{AV}{TOAGGRE}                                          yylval->string=strdup(yytext); RETURN_TOKEN(TOAVG);
 {QUOTE}[0-9]?[0-9]?[0-9]?[0-9]-[0-9]?[0-9]-[0-9]?[0-9]{QUOTE}                                   yylval->string=strdup(yytext); RETURN_TOKEN(DATE);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);
@@ -105,6 +102,7 @@ QUOTE            [\'\"]
 ">"                                      RETURN_TOKEN(GT);
 
 {QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
+[A-Za-z0-9_/\.\-]*                     RETURN_TOKEN(ANYTHING);
 .						                             printf("Unknown character [%c]\n",yytext[0]); return yytext[0];
 %%
 

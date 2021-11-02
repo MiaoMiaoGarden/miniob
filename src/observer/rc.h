@@ -179,6 +179,7 @@ enum RC {
   GENERIC_ERROR, /* Generic error */
   INVALID_ARGUMENT,/* Invalid argument */
   SQL_SYNTAX,    /* SQL Syntax error */
+  SQL_FAILURE,    /* SQL Syntax failure */
   BUFFERPOOL,    /* Buffer pool error*/
   RECORD,        /* Record error */
   INTERNAL,      /* Internal logic error in SQLite */

@@ -54,6 +54,12 @@ typedef struct _Value {
     void *data;     // value
 } Value;
 
+typedef struct _Orderby
+{
+    RelAttr *attr;
+    int asc_desc; // 0: asc, 1:desc 
+}Orderby;
+
 typedef struct _Condition {
     int left_is_attr;    // TRUE if left-hand side is an attribute
     // 1时，操作符左边是属性名，0时，是属性值
@@ -74,6 +80,9 @@ typedef struct {
     char *relations[MAX_NUM];     // relations in From clause
     size_t condition_num;          // Length of conditions in Where clause
     Condition conditions[MAX_NUM];    // conditions in Where clause
+  RelAttr *groupby_attr;
+  int nOrderbys;
+  Orderby *orderbys[MAX_NUM];
 } Selects;
 // use for multi insert
 typedef struct {
@@ -180,7 +189,8 @@ enum SqlCommandFlag {
     SCF_ROLLBACK,
     SCF_LOAD_DATA,
     SCF_HELP,
-    SCF_EXIT
+    SCF_EXIT,
+    SCF_FAILURE
 };
 // struct of flag and sql_struct
 typedef struct Query {
@@ -192,14 +202,19 @@ typedef struct Query {
 extern "C" {
 #endif  // __cplusplus
 
-void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name,int isaggre,int aggre_type);
+void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name);
 void relation_attr_destroy(RelAttr *relation_attr);
 
-void value_init_integer(Value *value, int v);
-void value_init_float(Value *value, float v);
+void value_init_integer(Value *value, const char *v);
+void value_init_float(Value *value, const char *v);
+
+void value_init_integer_int(Value *value, int v);
+void value_init_float_float(Value *value, float v);
+
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);
 void value_init_null(Value *value);
+void orderby_init_append(Selects *select, int asc_desc, RelAttr *attr, Orderby *orderby);
 
 void value_destroy(Value *value);
 
