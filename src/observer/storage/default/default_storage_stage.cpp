@@ -419,7 +419,7 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
                 value_init_string(&record_values[i], file_value.c_str());
             }
                 break;
-            case DATES: { // lijingkan
+            case DATES: {
                 deserialize_stream.clear();
                 deserialize_stream.str(file_value);
 

@@ -110,11 +110,8 @@ void condition_destroy(Condition *condition) {
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length) {
     attr_info->name = strdup(name);
     attr_info->type = type;
-    if (type == DATES) {
-        attr_info->length = 10;
-    } else {
-        attr_info->length = length;
-    }
+    attr_info->length = length;
+
 
 }
 void attr_info_destroy(AttrInfo *attr_info) {
