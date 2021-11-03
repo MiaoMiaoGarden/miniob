@@ -26,14 +26,60 @@ RC parse(char *st, Query *sqln);
 extern "C" {
 #endif // __cplusplus
 
-void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
+void parse_attr(char *tmp, AggreType aggre_type) {
+    if (aggre_type == NON) 
+        return;
+
+    char attr_name[30];
+    int j = 0;
+    int len = strlen(tmp);
+    for (int i = 0; i < len; i++) {
+        if (i == 0) {
+            if (aggre_type == COUNT) {
+                i += 5;
+            } else {
+                i += 3;
+            }
+        }
+        if (tmp[i] == '(' || tmp[i] == ')' || tmp[i] == ' ') {
+            continue;
+        }
+        attr_name[j++] = tmp[i];
+    }
+    attr_name[j] = '\0';
+
+    len = strlen(attr_name);
+    strncpy(tmp, attr_name, len);
+    tmp[len] = '\0';
+}
+
+void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name, int isaggre, int aggre_type) {
+
     if (relation_name != nullptr) {
         relation_attr->relation_name = strdup(relation_name);
     } else {
         relation_attr->relation_name = nullptr;
     }
+
     relation_attr->attribute_name = strdup(attribute_name);
     relation_attr->aggre_type = NON;
+    if(isaggre == 1){
+        if(aggre_type == 0){
+            relation_attr->aggre_type = COUNT;
+        } else  if(aggre_type == 1){
+            relation_attr->aggre_type = MIN;
+        } else  if(aggre_type == 2){
+            relation_attr->aggre_type = MAX;
+        } else  if(aggre_type == 3){
+            relation_attr->aggre_type = AVG;
+        }
+        char* tmp = strdup(attribute_name);
+        parse_attr(tmp, relation_attr->aggre_type);
+        relation_attr->attribute_name = tmp;
+    } else {
+        relation_attr->attribute_name = strdup(attribute_name);
+        relation_attr->aggre_type = NON;
+    }
 }
 
 void relation_attr_destroy(RelAttr *relation_attr) {
@@ -63,7 +109,7 @@ void value_init_integer_int(Value *value, int v) {
     memcpy(value->data, &v, sizeof(v));
 }
 
-void value_init_float_float(Value *value, float v) {
+void value_init_float(Value *value, float v) {
     value->type = FLOATS;
     value->data = malloc(sizeof(v));
     memcpy(value->data, &v, sizeof(v));
@@ -76,7 +122,14 @@ void value_init_string(Value *value, const char *v) {
 
 void value_init_date(Value *value, const char *v) {
     value->type = DATES;
-    value->data = strdup(v);
+    char *date = strdup(v);
+    const char *delim = "-";
+    int year = atoi(strtok(date, delim));
+    int month = atoi(strtok(NULL, delim));
+    int day = atoi(strtok(NULL, delim));
+    int intdate = year * 10000 + month * 100 + day;
+    value->data = malloc(sizeof(intdate));
+    memcpy(value->data, &intdate, sizeof(intdate));
 }
 
 void value_init_null(Value *value){
@@ -142,7 +195,6 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
     } else {
         attr_info->length = length;
     }
-
 }
 
 void attr_info_destroy(AttrInfo *attr_info) {
