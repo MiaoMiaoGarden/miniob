@@ -105,8 +105,6 @@ private:
   RecordFileHandler *     record_handler_;   /// 记录操作
   std::vector<Index *>    indexes_;
 
-    static bool isValidDate(char *date);
-
     bool insert_unique_conflict(const char *data);
 };
 

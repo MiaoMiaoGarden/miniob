@@ -357,14 +357,6 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
                       field->name(), field->type(), value.type);
             return RC::SCHEMA_FIELD_TYPE_MISMATCH;
         }
-        if (field->type() == AttrType::DATES) {
-            // 处理对于日期字段的正确性判断
-            if (value.data) {
-                if (!isValidDate(static_cast<char *>(value.data))) {
-                    return RC::GENERIC_ERROR;
-                }
-            }
-        }
     }
 
     // 复制所有字段的值
@@ -980,91 +972,6 @@ RC Table::sync() {
     }
     LOG_INFO("Sync table over. table=%s", name());
     return rc;
-}
-
-// see : https://stackoverflow.com/questions/9435385/split-a-string-using-c11
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::stringstream ss(s);
-    std::string item;
-    std::vector<std::string> elems;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
-    }
-    return elems;
-}
-
-bool Table::isValidDate(char *date) {
-    const std::vector<std::string> &dates = split(date, '-');
-    if (dates.size() != 3) {
-        LOG_ERROR("Failed to parser date filed");
-        return false;
-    }
-    int year_len = 4, month_len = 2, day_len = 2;
-    // 1. judge year
-    if (dates[0].size() < year_len) {
-        std::string str = dates[0];
-        int diff = year_len - dates[0].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff, date, strlen(date) + diff);
-        for (int i = 0; i < diff; i++) {
-            date[i] = str[i];
-        }
-    }
-    if (dates[1].size() < month_len) {
-        std::string str = dates[1];
-        int diff = month_len - dates[1].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff + year_len + 1, date + year_len + 1, strlen(date) + diff);
-        for (int i = 0; i < month_len; i++) {
-            date[year_len + 1 + i] = str[i];
-        }
-    }
-    if (dates[2].size() < day_len) {
-        std::string str = dates[2];
-        int diff = 2 - dates[2].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff + 8, date + 8, strlen(date) + diff);
-        for (int i = 0; i < 2; i++) {
-            date[8 + i] = str[i];
-        }
-    }
-    int year = atoi(dates[0].c_str());
-    bool isLeap = (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
-    if (year > 2038) {
-        LOG_ERROR("year is should not bigger than 2038!");
-        return false;
-    }
-    int month = atoi(dates[1].c_str());
-    int day = atoi(dates[2].c_str());
-    if (year == 2038 && month > 2) {
-        LOG_ERROR("if year == 2038, month is should not bigger than 2");
-        return false;
-    }
-    if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 11 || month == 12) {
-        if (day <= 0 || day > 31) {
-            LOG_ERROR("%d month has %d day is should not bigger than 31 or smaller than 0", month, day);
-            return false;
-        }
-    } else if (month == 2) {
-        if (day <= 0 || day > 28 + isLeap) {
-            LOG_ERROR(
-                    "%d year leap state is  %d . so %d month is should not have bigger than 28 (29) or smaller than 0 days",
-                    year, isLeap, month);
-            return false;
-        }
-    } else {
-        if (day <= 0 || day > 30) {
-            LOG_ERROR("%d month is should not have bigger than 30 or smaller than 0 days", month);
-            return false;
-        }
-    }
-    return true;
 }
 
 bool Table::insert_unique_conflict(const char *record) {

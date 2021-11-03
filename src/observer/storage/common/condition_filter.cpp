@@ -168,20 +168,9 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       cmp_result = (int)(left - right);
     } break;
     case DATES: {
-          std::vector<std::string> left = split_((char *) left_value, '-');
-          std::vector<std::string> right = split_((char *) right_value, '-');
-          int l_year = atoi(left[0].c_str()), r_year = atoi(right[0].c_str());
-          if (l_year != r_year) {
-              cmp_result = l_year - r_year;
-              break;
-          }
-          int l_month = atoi(left[1].c_str()), r_month = atoi(right[1].c_str());
-          if (l_month != r_month) {
-              cmp_result = l_month - r_month;
-          } else {
-              int l_day = atoi(left[2].c_str()), r_day = atoi(right[2].c_str());
-              cmp_result = l_day - r_day;
-          }
+        int left = *(int *)left_value;
+        int right = *(int *)right_value;
+        cmp_result = left - right;
       }
           break;
     default: {
