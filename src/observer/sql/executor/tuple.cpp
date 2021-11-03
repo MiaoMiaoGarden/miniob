@@ -289,6 +289,16 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     const TupleSchema &output_schema = tuple_set.schema();
     const TupleSchema &input_schema = this->schema();
     const std::vector<TupleField> &tuple_fields = input_schema.fields();
+    const RelAttr *groupby_attr = input_schema.get_groupby();
+    const char* group_relation_name = input_schema.group_relation_name();
+    int groupby_attr_index = -1;
+    AttrType groupattr_type = AttrType::UNDEFINED;
+    if(groupby_attr!=nullptr){
+       groupby_attr_index = output_schema.index_of_field(group_relation_name, groupby_attr->attribute_name);
+       groupattr_type = output_schema.field(groupby_attr_index).type();
+    }
+    int index_num = tuple_fields.size();
+    GroupHandler *group_handler = new GroupHandler();
     RC rc = RC::SUCCESS;
     bool count_flag = 0;
 
@@ -296,6 +306,14 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     for (auto& tuple : tuple_set.tuples()) {
         Tuple new_tuple;
         int index = 0;
+        int group = 0;
+        if ( groupby_attr_index!=-1 ){
+            TupleValue *tuplevalue = tuple.get_pointer(groupby_attr_index).get();
+            group = group_handler->get_group(tuplevalue, groupattr_type);
+            if(group<0){
+                return RC::GENERIC_ERROR;
+            }
+        }
         for (auto& tuple_field : tuple_fields) {
             if (tuple_field.aggre_type == AggreType::COUNT && 
                     is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
@@ -310,7 +328,7 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
                 }
                 const std::shared_ptr<TupleValue> &value_ptr = tuple.get_pointer(i);
                 if (tuple_field.isaggre) {
-                    rc = agg_exec_node.add_value(value_ptr, index, tuple_field.aggre_type, tuple_field.type());
+                    rc = agg_exec_node.add_value(value_ptr, index+group*index_num, tuple_field.aggre_type, tuple_field.type());
                     if (rc != RC::SUCCESS) {
                         return rc;
                     }
@@ -324,30 +342,40 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
             add(std::move(new_tuple));
         }
     }
+    int group_num = 1;
+    if(groupby_attr_index!=-1){
+        group_num = group_handler->get_group_num(groupattr_type);
+    }
     if (agg_exec_node.size() || count_flag) {
-        Tuple new_tuple;
-        int index = 0;
-        for (auto& tuple_field : tuple_fields) {
+        for(int group_id = 0; group_id < group_num; group_id++){
+            Tuple new_tuple;
+            int index = 0;
+            for (auto& tuple_field : tuple_fields) {
+                if (tuple_field.aggre_type == AggreType::COUNT && 
             if (tuple_field.aggre_type == AggreType::COUNT && 
-                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
-                std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
-                new_tuple.add(value_ptr);
-            } else {
-                const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index);
-                // 处理精度问题
-                if (tuple_field.type() == FLOATS && 
-                        (tuple_field.aggre_type == AggreType::MAX ||
-                         tuple_field.aggre_type == AggreType::MIN)) {
-                    FloatValue *fvalue_ptr = dynamic_cast<FloatValue *>(value_ptr.get());
-                    float value = round(100 * (fvalue_ptr->get_value())) / 100.0;
-                    new_tuple.add(value);
-                } else {
+                if (tuple_field.aggre_type == AggreType::COUNT && 
+                        is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
+                    std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
                     new_tuple.add(value_ptr);
+                } else {
+                    const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index+group_id*index_num);
+                    // 处理精度问题
+                    if (tuple_field.type() == FLOATS && 
+                if (tuple_field.type() == FLOATS && 
+                    if (tuple_field.type() == FLOATS && 
+                            (tuple_field.aggre_type == AggreType::MAX ||
+                            tuple_field.aggre_type == AggreType::MIN)) {
+                        FloatValue *fvalue_ptr = dynamic_cast<FloatValue *>(value_ptr.get());
+                        float value = round(100 * (fvalue_ptr->get_value())) / 100.0;
+                        new_tuple.add(value);
+                    } else {
+                        new_tuple.add(value_ptr);
+                    }
                 }
+                index += 1;
             }
-            index += 1;
+            add(std::move(new_tuple));
         }
-        add(std::move(new_tuple));
     }
     return rc;
 }

@@ -120,6 +120,22 @@ public:
   void clear() {
     fields_.clear();
   }
+  void set_groupby(RelAttr *groupby, char* group_relation_name) {
+    groupby_ = groupby;
+    if(groupby == nullptr) return;
+    if(groupby->relation_name==nullptr){
+        group_relation_name_ = group_relation_name;
+    } else {
+      group_relation_name_ = groupby->relation_name;
+    }
+  }
+  const RelAttr *get_groupby() const {
+    return groupby_;
+  }
+
+  const char *group_relation_name() const {
+    return group_relation_name_;
+  }
 
   void print(std::ostream &os) const;
   void print(std::ostream &os, bool flag) const;
@@ -128,6 +144,8 @@ public:
   static void from_table(const Table *table, TupleSchema &schema);
 private:
   std::vector<TupleField> fields_;
+  RelAttr *groupby_;
+  char *group_relation_name_;
 };
 
 class TupleSet {

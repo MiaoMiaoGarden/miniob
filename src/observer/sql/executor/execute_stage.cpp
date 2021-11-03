@@ -303,6 +303,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     TupleSchema output_scheam;
     rc = gen_output_scheam(tables_map, selects, output_scheam);
+    output_scheam.set_groupby(selects.groupby_attr,selects.relations[0]);
     if (rc != RC::SUCCESS) {
         snprintf(response, sizeof(response), "FAILURE\n");
         session_event->set_response(response);
@@ -416,7 +417,6 @@ RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tabl
             }
         }
     }
-
     return RC::SUCCESS;
 }
 
@@ -474,6 +474,13 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                     }
                 }
             }
+        }
+        RC rc = RC::SUCCESS;
+        if(selects.groupby_attr!=nullptr){
+            rc = schema_add_field(table, selects.groupby_attr->attribute_name, schema);
+        }
+        if (rc != RC::SUCCESS) {
+            return rc;
         }
     }
 
