@@ -28,7 +28,6 @@ public:
   Tuple() = default;
 
   Tuple(const Tuple &other);
-  Tuple(const int size);
 
   ~Tuple();
 
@@ -88,13 +87,14 @@ public:
 
   std::string to_string() const;
 
-public:
-  bool isaggre;
-  AggreType aggre_type;
 private:
   AttrType  type_;
   std::string table_name_;
   std::string field_name_;
+
+public:
+  bool isaggre;
+  AggreType aggre_type;
 };
 
 class TupleSchema {
@@ -103,6 +103,7 @@ public:
   ~TupleSchema() = default;
 
   void add(AttrType type, const char *table_name, const char *field_name);
+  void add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType agg_type);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
@@ -121,6 +122,7 @@ public:
   }
 
   void print(std::ostream &os) const;
+  void print(std::ostream &os, bool flag) const;
   void print_with_tablename(std::ostream &os) const;
 public:
   static void from_table(const Table *table, TupleSchema &schema);
@@ -139,6 +141,7 @@ public:
   ~TupleSet() = default;
 
   void set_schema(const TupleSchema &schema);
+  RC set_tuple_set(TupleSet&& tuple_set);
 
   const TupleSchema &get_schema() const;
 
@@ -152,6 +155,7 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  void print(std::ostream &os, bool flag) const;
   void print_with_tablename(std::ostream &os) const;
 public:
   const TupleSchema &schema() const {

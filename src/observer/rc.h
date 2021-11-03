@@ -208,6 +208,7 @@ enum RC {
   NOTADB,        /* File opened that is not a database file */
   NOTICE = 100,  /* Notifications from log() */
   UNIQUEINDEX_CONFLICT,
+  INVALID_COMPOP,
   /* buffer pool part */
   BUFFERPOOL_EXIST = (BUFFERPOOL | (RCBufferPool::BP_EXIST << 8)),
   BUFFERPOOL_FILEERR = (BUFFERPOOL | (RCBufferPool::BP_FILEERR << 8)),

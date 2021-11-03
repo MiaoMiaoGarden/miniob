@@ -349,13 +349,30 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
     }
 
     const int normal_field_start_index = table_meta_.sys_field_num();
+    std::vector<bool> fields_nullable;
+    table_meta_.fields_nullable_type(fields_nullable);
     for (int i = 0; i < value_num; i++) {
         const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
         const Value &value = values[i];
-        if (field->type() != value.type) {
+        if (field->type() != value.type && NULLS != value.type) {  // NULLS type can match any type
             LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                       field->name(), field->type(), value.type);
             return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }
+        std::string data = static_cast<char *>(value.data);
+        // std::transform(data.begin(), data.end(), ::tolower);
+        if(data=="!null"){  // attend to insert null
+            if(!fields_nullable[i]){      // but field is not nullable
+                return RC::CONSTRAINT_NOTNULL;
+            }
+        }
+        if (field->type() == AttrType::DATES && NULLS !=value.type) {
+            // 处理对于日期字段的正确性判断
+            if (value.data) {
+                if (!isValidDate(static_cast<char *>(value.data))) {
+                    return RC::GENERIC_ERROR;
+                }
+            }
         }
     }
 
@@ -366,6 +383,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
     for (int i = 0; i < value_num; i++) {
         const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
         const Value &value = values[i];
+        std::string data = (char *)(value.data);
+        // std::transform(data.begin(), data.end(), ::tolower);
         memcpy(record + field->offset(), value.data, field->len());
     }
 
@@ -641,9 +660,17 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     }
 
     if (value_num <= 0 || nullptr == value ||
-        table_meta_.field(attr_index + normal_field_start_index)->type() != value->type) {
+        table_meta_.field(attr_index + normal_field_start_index)->type() != value->type && NULLS != value->type) {
         LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
         return RC::INVALID_ARGUMENT;
+    }
+
+    std::string data = (char *)(value->data);
+    // std::transform(data.begin(), data.end(), ::tolower);
+    if(data=="!null"){
+        if (table_meta_.field(attr_index + normal_field_start_index)->nullable()==false){
+            return RC::CONSTRAINT_NOTNULL;
+        }
     }
 
     // construct index_scanner
