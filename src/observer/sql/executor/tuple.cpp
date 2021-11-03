@@ -60,6 +60,11 @@ void Tuple::add(const char *s, int len) {
     add(new StringValue(s, len));
 }
 
+void Tuple::add(int value, bool flag) {
+    if (flag)
+        add(new DateValue(value));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {
@@ -89,13 +94,13 @@ void TupleSchema::add(AttrType type, const char *table_name, const char *field_n
 
 
 void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name) {
-  for (const auto &field: fields_) {   
-    if (0 == strcmp(field.table_name(), table_name) &&
-        0 == strcmp(field.field_name(), field_name)) {
-      return;
+    for (const auto &field: fields_) {   // todo: aggre & no aggre need to check here
+        if (0 == strcmp(field.table_name(), table_name) &&
+            0 == strcmp(field.field_name(), field_name)) {
+            return;
+        }
     }
-  }
-  add(type, table_name, field_name);
+    add(type, table_name, field_name);
 }
 
 void TupleSchema::append(const TupleSchema &other) {
@@ -397,16 +402,12 @@ void TupleRecordConverter::add_record(const char *record) {
                 break;
             case CHARS: {
                 const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
-                char *dst = (char *) malloc(field_meta->len());
-                strncpy(dst, s, field_meta->len());
-                tuple.add(dst, strlen(dst));
+                tuple.add(s, strlen(s));
             }
                 break;
             case DATES: {
-                const char *s = record + field_meta->offset();// 现在当做Cstring来处理
-                char *dst = (char *) malloc(field_meta->len());
-                strncpy(dst, s, field_meta->len());
-                tuple.add(dst, strlen(dst));
+                int value = *(int *) (record + field_meta->offset());
+                tuple.add(value, true);
             }
                 break;
             default: {
