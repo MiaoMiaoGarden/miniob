@@ -39,10 +39,8 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
-
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
                     const char *table_name, SelectExeNode &select_node);
-
 
 RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
                     const std::vector<SelectExeNode*> &select_nodes,
@@ -279,6 +277,7 @@ void parse_attr(char *attribute_name, AggreType aggre_type, char *attr_name) {
     }
     attr_name[j] = '\0';
 }
+
 
 RC ExecuteStage::do_aggregate(const Selects &selects, TupleSet &tuple_set, TupleSet &aggred_tupleset) {
     // schema
@@ -648,8 +647,50 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
     return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
 
-void cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, TupleSet &tuple_set) {
-    // conditions for cross join
+RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
+                    const std::vector<SelectExeNode*> &select_nodes,
+                    TupleSet &tuple_set) {
+    TupleSchema output_scheam;
+    std::unordered_map<std::string, Table*> tables_map;
+
+    for (auto& select_node : select_nodes) {
+        Table* table = select_node->get_table();
+        std::string table_name(table->name());
+        tables_map[table_name] = table;
+    }
+
+    std::unordered_map<std::string, const TupleSchema*> schemas_map;
+    for (auto& tuple_set1 : tuple_sets) {
+        std::string table_name(tuple_set1.get_schema().fields()[0].table_name());
+        schemas_map[table_name] = &tuple_set1.get_schema();
+    }
+
+    for (int i = selects.attr_num - 1; i >= 0; i--) {
+        const RelAttr &attr = selects.attributes[i];
+        if (attr.relation_name == nullptr) {
+            if (strcmp("*", attr.attribute_name) == 0) {
+                int size = tuple_sets.size();
+                for (int i = size - 1; i >= 0; i--) {
+                    output_scheam.append(tuple_sets[i].get_schema());
+                }
+            } else {
+                return RC::SCHEMA_TABLE_NOT_EXIST;
+            }
+            break;
+        } 
+        std::string table_name(attr.relation_name);
+        Table* table = tables_map[table_name];
+        if (strcmp("*", attr.attribute_name) == 0) {
+            TupleSchema schema;
+            TupleSchema::from_table(table, schema);
+            output_scheam.append(schema);
+        } else {
+            RC rc = schema_add_field(table, attr.attribute_name, output_scheam);
+            if (rc != RC::SUCCESS) {
+                return rc;
+            }
+        }
+    }
     std::vector<const Condition *> conditions;
     for (size_t i = 0; i < selects.condition_num; i++) {
         const Condition &condition = selects.conditions[i];
@@ -659,81 +700,67 @@ void cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, Tuple
         }
     }
 
-    // schema for new tuple_set
-    TupleSchema tuple_schema;
-    for (int i = selects.attr_num - 1; i >= 0; i--) {
-        const RelAttr &attr = selects.attributes[i];
-        if (attr.relation_name == nullptr && 0 == strcmp("*", attr.attribute_name)) {
-            for (int j = tuple_sets.size() - 1; j >= 0; j--) {
-                tuple_schema.append(tuple_sets[j].schema());
-            }
-            break;
-        } else {
-            for (auto &tuple_set1: tuple_sets) {
-                if (0 == strcmp(tuple_set1.get_schema().fields()[0].table_name(), attr.relation_name)) {
-                    if (0 == strcmp("*", attr.attribute_name)) {
-                        tuple_schema.append(tuple_set1.get_schema());
-                        break;
-                    } else {
-                        const TupleSchema &schema = tuple_set1.get_schema();
-                        for (auto &tuple_field: schema.fields()) {
-                            if (0 == strcmp(tuple_field.field_name(), attr.attribute_name)) {
-                                tuple_schema.add(tuple_field.type(), tuple_field.table_name(),
-                                                 tuple_field.field_name());
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            // TODO: need check
-        }
-    }
-
-    tuple_set.set_schema(tuple_schema);
-
-    Tuple tuple(tuple_schema.fields().size());
-    do_cross_join(tuple_sets, 0, conditions, tuple_set, tuple);
+    tuple_set.set_schema(output_scheam);
+    std::unordered_map<std::string, const Tuple*> tuples_map;
+    return do_cross_join(tuple_sets, tuple_sets.size() - 1, conditions, tuple_set, tuples_map, schemas_map);
 }
 
-void do_cross_join(std::vector<TupleSet> &tuple_sets, int index, std::vector<const Condition *> conditions,
-                   TupleSet &tuple_set, Tuple &tuple) {
-    int size = tuple_sets.size();
-    if (index == size) {
-        for (auto &condition: conditions) {
-            char *left_table = condition->left_attr.relation_name;
-            char *left_attr = condition->left_attr.attribute_name;
-            char *right_table = condition->right_attr.relation_name;
-            char *right_attr = condition->right_attr.attribute_name;
-            int i = tuple_set.get_schema().index_of_field(left_table, left_attr);
-            int j = tuple_set.get_schema().index_of_field(right_table, right_attr);
+RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index, 
+                    std::vector<const Condition *> conditions,
+                    TupleSet &tuple_set, 
+                    std::unordered_map<std::string, const Tuple*> &tuples_map,
+                    std::unordered_map<std::string, const TupleSchema*> &schemas_map) {
 
-            int result = tuple.get(i).compare(tuple.get(j));
+    if (index == -1) {
+        for (auto &condition: conditions) {
+            std::string left_table(condition->left_attr.relation_name);
+            char *left_attr = condition->left_attr.attribute_name;
+            std::string right_table(condition->right_attr.relation_name);
+            char *right_attr = condition->right_attr.attribute_name;
+            
+            int i = schemas_map[left_table]->index_of_field(left_table.c_str(), left_attr);
+            int j = schemas_map[right_table]->index_of_field(right_table.c_str(), right_attr);
+            if ( i == -1 || j == -1) {
+                return RC::SCHEMA_FIELD_NAME_ILLEGAL;
+            }
+
+            const TupleValue &tuple_value1 = tuples_map[left_table]->get(i);
+            const TupleValue &tuple_value2 = tuples_map[right_table]->get(j);
+            int result = tuple_value1.compare(tuple_value2);
             if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
                                  condition->comp == CompOp::LESS_EQUAL)) ||
                 (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
                 (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
                 continue;
             }
-            return;
+            return RC::SUCCESS;
         }
         Tuple new_tuple;
-        for (auto &value: tuple.values()) {
-            new_tuple.add(value);
+        const std::vector<TupleField> &tuple_fields = tuple_set.get_schema().fields();
+        for (auto& tuple_field : tuple_fields) {
+            std::string table_name(tuple_field.table_name());
+            int i = schemas_map[table_name]->index_of_field(table_name.c_str(), tuple_field.field_name());
+            std::shared_ptr<TupleValue> value_ptr = tuples_map[table_name]->get_pointer(i);
+            new_tuple.add(value_ptr);
         }
         tuple_set.add(std::move(new_tuple));
-        return;
+        return RC::SUCCESS;
     }
 
     const TupleSet &tuple_set1 = tuple_sets[index];
+    const std::vector<Tuple> &tuples = tuple_set1.tuples();
     const std::vector<TupleField> &fields = tuple_set1.get_schema().fields();
+    std::string table_name(fields[0].table_name());
 
-    for (auto &tuple1: tuple_set1.tuples()) {
-        for (int i = 0; i < fields.size(); i++) {
-            int j = tuple_set.get_schema().index_of_field(fields[i].table_name(), fields[i].field_name());
-            tuple.set(j, const_cast<std::shared_ptr<TupleValue> &>(tuple1.get_pointer(i)));
+    int size = tuples.size();
+    for (int i = 0; i < size; i++) {
+        tuples_map[table_name] = &tuples[i];
+        RC rc = do_cross_join(tuple_sets, index - 1, conditions, tuple_set, tuples_map, schemas_map);
+        if (rc != RC::SUCCESS) {
+            return rc;
         }
-        do_cross_join(tuple_sets, index + 1, conditions, tuple_set, tuple);
     }
+
+    return RC::SUCCESS;
 }
 
