@@ -39,8 +39,10 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
+
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db,
                     const char *table_name, SelectExeNode &select_node);
+
 
 RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
                     const std::vector<SelectExeNode*> &select_nodes,
