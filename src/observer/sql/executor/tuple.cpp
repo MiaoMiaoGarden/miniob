@@ -267,16 +267,12 @@ void TupleRecordConverter::add_record(const char *record) {
                 break;
             case CHARS: {
                 const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
-                char *dst = (char *) malloc(field_meta->len());
-                strncpy(dst, s, field_meta->len());
-                tuple.add(dst, strlen(dst));
+                tuple.add(s, strlen(s));
             }
                 break;
             case DATES: {
-                const char *s = record + field_meta->offset();// 现在当做Cstring来处理
-                char *dst = (char *) malloc(field_meta->len());
-                strncpy(dst, s, field_meta->len());
-                tuple.add(dst, strlen(dst));
+                int value = *(int*)(record + field_meta->offset());
+                tuple.add(value, true);
             }
                 break;
             default: {
