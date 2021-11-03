@@ -19,55 +19,6 @@ See the Mulan PSL v2 for more details. */
 #include <functional>
 #include "sql/parser/parse_defs.h"
 #include "functional"
-std::vector<std::string> split_date(const std::string &s, char delim) {
-    std::stringstream ss(s);
-    std::string item;
-    std::vector<std::string> elems;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
-    }
-    return elems;
-}
-// is a function to compare date
-// if str_l == str_r return 0
-// if str_l > str_r return 1
-// if srt_l < str_r return -1
-int cmp_date (const char *l, const char *r) {
-    const std::vector<std::string> &l_value = split_date(l, '-');
-    const std::vector<std::string> &r_value = split_date(r, '-');
-    // 1. compare year
-    int l_year = atoi(l_value[0].c_str());
-    int r_year = atoi(r_value[0].c_str());
-    if (l_year != r_year) {
-        if (l_year > r_year) {
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    // 2. compare month
-    int l_month = atoi(l_value[1].c_str());
-    int r_month = atoi(r_value[1].c_str());
-    if (l_month != r_month) {
-        if (l_month > r_month) {
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    // 3. compare day
-    int l_day = atoi(l_value[2].c_str());
-    int r_day = atoi(r_value[2].c_str());
-    if (l_day != r_day) {
-        if (l_day > r_day) {
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    return 0;
-};
-
 int float_compare(float f1, float f2) {
     float result = f1 - f2;
     if (result < 1e-6 && result > -1e-6) {
@@ -238,9 +189,14 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr
             return strncmp(s1, s2, attr_length);
         }
         case DATES: {
-            s1 = pdata;
-            s2 = pkey;
-            return cmp_date(s1, s2);
+            i1 = *(int *) pdata;
+            i2 = *(int *) pkey;
+            if (i1 > i2)
+                return 1;
+            if (i1 < i2)
+                return -1;
+            if (i1 == i2)
+                return 0;
         }
             break;
         default: {
@@ -1896,8 +1852,8 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
             s2 = value_;
             break;
         case DATES:
-            s1 = pkey;
-            s2 = value_;
+            i1=*(int *)pkey;
+            i2=*(int *)value_;
             break;
         default:
             LOG_PANIC("Unknown attr type: %d", attr_type);
@@ -1919,7 +1875,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
                     flag = (strncmp(s1, s2, attr_length) == 0);
                     break;
                 case DATES:
-                    flag = cmp_date(s1, s2) == 0;
+                    flag = (i1 == i2);
                     break;
                 default:
                     LOG_PANIC("Unknown attr type: %d", attr_type);
@@ -1937,7 +1893,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
                     flag = (strncmp(s1, s2, attr_length) < 0);
                     break;
                 case DATES:
-                    flag = cmp_date(s1, s2) < 0;
+                    flag = (i1 < i2);
                     break;
                 default:
                     LOG_PANIC("Unknown attr type: %d", attr_type);
@@ -1955,7 +1911,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
                     flag = (strncmp(s1, s2, attr_length) > 0);
                     break;
                 case DATES:
-                    flag = cmp_date(s1, s2) > 0;
+                    flag = (i1 > i2);
                     break;
                 default:
                     LOG_PANIC("Unknown attr type: %d", attr_type);
@@ -1973,7 +1929,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
                     flag = (strncmp(s1, s2, attr_length) <= 0);
                     break;
                 case DATES:
-                    flag = cmp_date(s1, s2) <= 0;
+                    flag = (i1 <= i2);
                     break;
                 default:
                     LOG_PANIC("Unknown attr type: %d", attr_type);
@@ -1991,7 +1947,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
                     flag = (strncmp(s1, s2, attr_length) >= 0);
                     break;
                 case DATES:
-                    flag = cmp_date(s1, s2) >= 0;
+                    flag = (i1 >= i2);
                     break;
                 default:
                     LOG_PANIC("Unknown attr type: %d", attr_type);
@@ -2009,7 +1965,7 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
                     flag = (strncmp(s1, s2, attr_length) != 0);
                     break;
                 case DATES:
-                    flag = cmp_date(s1, s2) != 0;
+                    flag = (i1 >= i2);
                     break;
                 default:
                     LOG_PANIC("Unknown attr type: %d", attr_type);
