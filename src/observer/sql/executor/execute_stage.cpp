@@ -37,7 +37,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 
 using namespace common;
-
+// 测试一下
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name,
                              SelectExeNode &select_node, SessionEvent *session_event);
 
