@@ -15,6 +15,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 #include "common/log/log.h"
+#include "sql/executor/aggregate.h"
+#include <memory>
 
 Tuple::Tuple(const Tuple &other) {
     LOG_PANIC("Copy constructor of tuple is not supported");
@@ -23,10 +25,6 @@ Tuple::Tuple(const Tuple &other) {
 
 Tuple::Tuple(Tuple &&other) noexcept: values_(std::move(other.values_)) {
 }
-
-Tuple::Tuple(const int size) : values_(size) {
-}
-
 
 Tuple &Tuple::operator=(Tuple &&other) noexcept {
     if (&other == this) {
@@ -90,6 +88,10 @@ void TupleSchema::add(AttrType type, const char *table_name, const char *field_n
     fields_.emplace_back(type, table_name, field_name);
 }
 
+void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType agg_type) {
+    fields_.emplace_back(type, table_name, field_name, isaggre, agg_type);
+}
+
 
 void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const char *field_name) {
     for (const auto &field: fields_) {   // todo: aggre & no aggre need to check here
@@ -100,7 +102,6 @@ void TupleSchema::add_if_not_exists(AttrType type, const char *table_name, const
     }
     add(type, table_name, field_name);
 }
-
 
 void TupleSchema::append(const TupleSchema &other) {
     fields_.reserve(fields_.size() + other.fields_.size());
@@ -144,6 +145,58 @@ void TupleSchema::print(std::ostream &os) const {
         os << fields_.back().table_name() << ".";
     }
     os << fields_.back().field_name() << std::endl;
+}
+
+void TupleSchema::print(std::ostream &os, bool flag) const {
+    if (fields_.empty()) {
+        os << "No schema";
+        return;
+    }
+
+    for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
+         iter != end; ++iter) {
+        if (iter->isaggre) {
+            if (iter->aggre_type == AggreType::MIN) {
+                os << "min(";
+            } else if (iter->aggre_type == AggreType::MAX) {
+                os << "max(";
+            } else if (iter->aggre_type == AggreType::AVG) {
+                os << "avg(";
+            } else if (iter->aggre_type == AggreType::COUNT) {
+                os << "count(";
+            }
+        }
+        if (flag) {
+            os << iter->table_name() << ".";
+        }
+        os << iter->field_name();
+        if (iter->isaggre) {
+            os << ")";
+        }
+        os << " | ";
+    }
+
+    if (fields_.back().isaggre) {
+        if (fields_.back().aggre_type == AggreType::MIN) {
+            os << "min(";
+        } else if (fields_.back().aggre_type == AggreType::MAX) {
+            os << "max(";
+        } else if (fields_.back().aggre_type == AggreType::AVG) {
+            os << "avg(";
+        } else if (fields_.back().aggre_type == AggreType::COUNT) {
+            os << "count(";
+        }
+    }
+
+    if (flag) {
+        os << fields_.back().table_name() << ".";
+    }
+    os << fields_.back().field_name();
+    if (fields_.back().isaggre) {
+        os << ")";
+    }
+
+    os << std::endl;
 }
 
 void TupleSchema::print_with_tablename(std::ostream &os) const {
@@ -223,8 +276,85 @@ void TupleSet::print(std::ostream &os) const {
     print_tuples(os, tuples_);
 }
 
+void TupleSet::print(std::ostream &os, bool flag) const {
+    if (schema_.fields().empty()) {
+        LOG_WARN("Got empty schema");
+        return;
+    }
+
+    schema_.print(os, flag);
+    print_tuples(os, tuples_);
+}
+
 void TupleSet::set_schema(const TupleSchema &schema) {
     schema_ = schema;
+}  
+
+RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
+    const TupleSchema &output_schema = tuple_set.schema();
+    const TupleSchema &input_schema = this->schema();
+    const std::vector<TupleField> &tuple_fields = input_schema.fields();
+    RC rc = RC::SUCCESS;
+    bool count_flag = 0;
+
+    AggregateExeNode agg_exec_node;
+    for (auto& tuple : tuple_set.tuples()) {
+        Tuple new_tuple;
+        int index = 0;
+        for (auto& tuple_field : tuple_fields) {
+            if (tuple_field.aggre_type == AggreType::COUNT && 
+                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
+                // 这个地方可以优化，对于 select count(*) from t; 这种情况，可以单独判断
+                // COUNT(*), COUNT(1), ...
+                count_flag = 1;
+            } else {
+                int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
+                if (i == -1) {
+                    rc = RC::SCHEMA_FIELD_NOT_EXIST;
+                    return rc;
+                }
+                const std::shared_ptr<TupleValue> &value_ptr = tuple.get_pointer(i);
+                if (tuple_field.isaggre) {
+                    rc = agg_exec_node.add_value(value_ptr, index, tuple_field.aggre_type, tuple_field.type());
+                    if (rc != RC::SUCCESS) {
+                        return rc;
+                    }
+                } else {
+                    new_tuple.add(value_ptr);
+                }
+            }
+            index += 1;
+        }
+        if (new_tuple.size() != 0) {
+            add(std::move(new_tuple));
+        }
+    }
+    if (agg_exec_node.size() || count_flag) {
+        Tuple new_tuple;
+        int index = 0;
+        for (auto& tuple_field : tuple_fields) {
+            if (tuple_field.aggre_type == AggreType::COUNT && 
+                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
+                std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
+                new_tuple.add(value_ptr);
+            } else {
+                const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index);
+                // 处理精度问题
+                if (tuple_field.type() == FLOATS && 
+                        (tuple_field.aggre_type == AggreType::MAX ||
+                         tuple_field.aggre_type == AggreType::MIN)) {
+                    FloatValue *fvalue_ptr = dynamic_cast<FloatValue *>(value_ptr.get());
+                    float value = round(100 * (fvalue_ptr->get_value())) / 100.0;
+                    new_tuple.add(value);
+                } else {
+                    new_tuple.add(value_ptr);
+                }
+            }
+            index += 1;
+        }
+        add(std::move(new_tuple));
+    }
+    return rc;
 }
 
 const TupleSchema &TupleSet::get_schema() const {

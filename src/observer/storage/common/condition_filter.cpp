@@ -41,12 +41,12 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > DATES) {
+  if (attr_type < CHARS || attr_type > NULLS) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
 
-  if (comp_op < EQUAL_TO || comp_op >= NO_OP) {
+  if (comp_op < EQUAL_TO || comp_op > IS_NOT_COMPOP || comp_op == NO_OP) {
     LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
     return RC::INVALID_ARGUMENT;
   }
@@ -78,12 +78,17 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     left.attr_offset = field_left->offset();
 
     left.value = nullptr;
+    left.nullable =  field_left->nullable();
 
     type_left = field_left->type();
   } else {
     left.is_attr = false;
     left.value = condition.left_value.data;  // 校验type 或者转换类型
     type_left = condition.left_value.type;
+    char *left_value = (char*)(left.value);
+    if(*left_value=='!'){
+      type_left = NULLS;
+    }
 
     left.attr_length = 0;
     left.attr_offset = 0;
@@ -99,12 +104,18 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.attr_length = field_right->len();
     right.attr_offset = field_right->offset();
     type_right = field_right->type();
+    right.nullable = field_right->nullable();
 
     right.value = nullptr;
   } else {
     right.is_attr = false;
     right.value = condition.right_value.data;
     type_right = condition.right_value.type;
+    char *right_value = (char*)(right.value);
+    if(*right_value=='!'){
+      type_right = NULLS;
+    }
+
 
     right.attr_length = 0;
     right.attr_offset = 0;
@@ -117,7 +128,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   //  }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-  if (type_left != type_right) {
+  if (type_left != type_right && (type_left!=NULLS && type_right!=NULLS)) {  // both are not null, and unmatch
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -149,50 +160,96 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     right_value = (char *)right_.value;
   }
 
-  int cmp_result = 0;
-  switch (attr_type_) {
-    case CHARS: {  // 字符串都是定长的，直接比较
-      // 按照C字符串风格来定
-      cmp_result = strcmp(left_value, right_value);
-    } break;
-    case INTS: {
-      // 没有考虑大小端问题
-      // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-      int left = *(int *)left_value;
-      int right = *(int *)right_value;
-      cmp_result = left - right;
-    } break;
-    case FLOATS: {
-      float left = *(float *)left_value;
-      float right = *(float *)right_value;
-      cmp_result = (int)(left - right);
-    } break;
-    case DATES: {
-        int left = *(int *)left_value;
-        int right = *(int *)right_value;
-        cmp_result = left - right;
-      }
-          break;
-    default: {
+  int cmp_result = 0;  // 0 false, 1 true
+  bool left_is_null = (*left_value=='!');
+  bool right_is_null = (*right_value=='!');
+
+  if( left_is_null && right_is_null ){  // null comop null
+    if( comp_op_==IS_COMPOP ) {   // is
+      return true;
+    } else if( comp_op_==IS_NOT_COMPOP ) {   // is not
+      return false;
+    } else {     // >=、noop
+      return false;
     }
-  }
-
-  switch (comp_op_) {
-    case EQUAL_TO:
-      return 0 == cmp_result;
-    case LESS_EQUAL:
-      return cmp_result <= 0;
-    case NOT_EQUAL:
-      return cmp_result != 0;
-    case LESS_THAN:
-      return cmp_result < 0;
-    case GREAT_EQUAL:
-      return cmp_result >= 0;
-    case GREAT_THAN:
-      return cmp_result > 0;
-
-    default:
-      break;
+  } else if (left_is_null) {  // null comop (value/id,anything not null)
+    if(comp_op_ <=7 ){  // >=、noop
+      return false;
+    } else if (comp_op_ == IS_COMPOP){ // is 
+      return false;
+    } else if (comp_op_ == IS_NOT_COMPOP){  // is not
+      return true;
+    } else {
+      LOG_PANIC("Never should print this.");
+    }
+  } else if (right_is_null) {   // (value/id,anything not null) compop null
+    if(comp_op_ <=7 ){  // >=、noop
+      return false;
+    } else if (comp_op_ == IS_COMPOP){  // is
+      return false;
+    } else if (comp_op_ == IS_NOT_COMPOP){ // isnot
+      return true;
+    } else {
+      LOG_PANIC("Never should print this.");
+    }
+  } else {  // notnull comop notnull
+      switch (attr_type_) {  // left.attr_type
+        case CHARS: {  // 字符串都是定长的，直接比较
+          // 按照C字符串风格来定
+          cmp_result = strcmp(left_value, right_value);
+        } break;
+        case INTS: {
+          // 没有考虑大小端问题
+          // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
+          int left = *(int *)left_value;
+          int right = *(int *)right_value;
+          cmp_result = left - right;
+        } break;
+        case FLOATS: {
+          float left = *(float *)left_value;
+          float right = *(float *)right_value;
+          cmp_result = (int)(left - right);
+        } break;
+        case DATES: {
+              std::vector<std::string> left = split_((char *) left_value, '-');
+              std::vector<std::string> right = split_((char *) right_value, '-');
+              int l_year = atoi(left[0].c_str()), r_year = atoi(right[0].c_str());
+              if (l_year != r_year) {
+                  cmp_result = l_year - r_year;
+                  break;
+              }
+              int l_month = atoi(left[1].c_str()), r_month = atoi(right[1].c_str());
+              if (l_month != r_month) {
+                  cmp_result = l_month - r_month;
+              } else {
+                  int l_day = atoi(left[2].c_str()), r_day = atoi(right[2].c_str());
+                  cmp_result = l_day - r_day;
+              }
+          }
+              break;
+        default: {
+        }
+      }
+      switch (comp_op_) {
+        case EQUAL_TO:
+          return 0 == cmp_result;
+        case LESS_EQUAL:
+          return cmp_result <= 0;
+        case NOT_EQUAL:
+          return cmp_result != 0;
+        case LESS_THAN:
+          return cmp_result < 0;
+        case GREAT_EQUAL:
+          return cmp_result >= 0;
+        case GREAT_THAN:
+          return cmp_result > 0;
+        case IS_COMPOP:
+          return 0 == cmp_result;
+        case IS_NOT_COMPOP:
+          return cmp_result != 0;  // TODO: 1 is 1 return what? 
+        default:
+          break;
+      }
   }
 
   LOG_PANIC("Never should print this.");

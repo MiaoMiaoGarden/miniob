@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "tuple.h"
+#include <unordered_map>
 class SessionEvent;
 
 class ExecuteStage : public common::Stage {
@@ -39,6 +40,8 @@ protected:
 
   void handle_request(common::StageEvent *event);
   RC do_select(const char *db, Query *sql, SessionEvent *session_event);
+  RC gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map,
+                const Selects &selects, TupleSchema &output_scheam);
   RC do_aggregate(const Selects &selects, TupleSet &tuple_set, TupleSet &aggred_tupleset);
 protected:
 private:
