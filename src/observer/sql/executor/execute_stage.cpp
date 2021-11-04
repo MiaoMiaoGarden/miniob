@@ -49,6 +49,7 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
                     const std::vector<SelectExeNode*> &select_nodes,
                     TupleSet &tuple_set);
 
+
 RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
                     std::vector<const Condition *> conditions,
                     TupleSet &tuple_set, 
@@ -316,6 +317,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
     // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
     std::vector<SelectExeNode *> select_nodes;
+    char response[256];
     for (size_t i = 0; i < selects.relation_num; i++) {
         std::string table_name(selects.relations[i]);
         SelectExeNode *select_node = new SelectExeNode;
@@ -493,14 +495,17 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
 }
 
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
+
 RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                 const char *table_name, SelectExeNode &select_node) {
     // 列出跟这张表关联的Attr
     TupleSchema schema;
 
+
     if (selects.relation_num > 1) {
         // select t1.age from t1, t2 where t1.id = t2.id;
         // 就目前来说，如果查询包括多张表，那需要把每张的表的相关字段(t1.age, t1.id, t2.id)都列出来, 
+
         // 方便笛卡尔积做过滤。现在是把所有字段都列了出来，这个地方后面可能需要优化。
         TupleSchema::from_table(table, schema);
     } else {
@@ -513,6 +518,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                 */
                 if (0 == strcmp("*", attr.attribute_name) || 
                         (attr.aggre_type != NON && is_valid_aggre(attr.attribute_name, attr.aggre_type))) {
+
                     // 列出这张表所有字段
                     TupleSchema::from_table(table, schema);
                     break; // 没有校验，给出* 之后，再写字段的错误
@@ -562,7 +568,6 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
 RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
                     const std::vector<SelectExeNode*> &select_nodes,
                     TupleSet &tuple_set) {
-
     TupleSchema scheam;
     std::unordered_map<std::string, const TupleSchema*> schemas_map;
 
@@ -581,6 +586,7 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
         }
     }
     tuple_set.set_schema(scheam);
+
     std::unordered_map<std::string, const Tuple*> tuples_map;
     return do_cross_join(tuple_sets, tuple_sets.size() - 1, conditions, tuple_set, tuples_map, schemas_map);
 }
@@ -628,8 +634,9 @@ RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
     }
 
     const TupleSet &tuple_set1 = tuple_sets[index];
-    const std::vector<TupleField> &fields = tuple_set1.get_schema().fields();
     const std::vector<Tuple> &tuples = tuple_set1.tuples();
+    const std::vector<TupleField> &fields = tuple_set1.get_schema().fields();
+
     std::string table_name(fields[0].table_name());
 
     int size = tuples.size();
