@@ -136,6 +136,10 @@ void condition_destroy(Condition *condition) {
     }
 }
 
+void string2int(int *int_length, const char* length){
+    *int_length = atoi(length);
+}
+
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int nullable) {
     attr_info->name = strdup(name);
     attr_info->type = type;
