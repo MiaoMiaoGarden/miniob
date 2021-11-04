@@ -193,7 +193,6 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       LOG_PANIC("Never should print this.");
     }
   } else {  // notnull comop notnull
-
       switch (attr_type_) {  // left.attr_type
         case CHARS: {  // 字符串都是定长的，直接比较
           // 按照C字符串风格来定
