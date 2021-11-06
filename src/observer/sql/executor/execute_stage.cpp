@@ -526,9 +526,9 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                 } else {
                     // 列出这张表相关字段
                     RC rc = RC::SUCCESS;
-                    if (attr.aggre_type != NON) {
+                    // if (attr.aggre_type != NON) {
                         rc = schema_add_field(table, attr.attribute_name, schema);
-                    }
+                    // }
                     if (rc != RC::SUCCESS) {
                         return rc;
                     }
