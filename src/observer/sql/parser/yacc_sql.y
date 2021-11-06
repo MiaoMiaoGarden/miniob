@@ -498,6 +498,9 @@ select_attr:
 				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
 			}
 		}
+	| aggretype LBRACE  RBRACE attr_list{
+			CONTEXT->ssql->flag = SCF_FAILURE;
+		}
     | ID attr_list {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
