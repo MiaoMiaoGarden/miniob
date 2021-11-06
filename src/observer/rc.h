@@ -179,6 +179,7 @@ enum RC {
   GENERIC_ERROR, /* Generic error */
   INVALID_ARGUMENT,/* Invalid argument */
   SQL_SYNTAX,    /* SQL Syntax error */
+  SQL_FAILURE,    /* SQL Syntax failure */
   BUFFERPOOL,    /* Buffer pool error*/
   RECORD,        /* Record error */
   INTERNAL,      /* Internal logic error in SQLite */
@@ -208,6 +209,7 @@ enum RC {
   NOTADB,        /* File opened that is not a database file */
   NOTICE = 100,  /* Notifications from log() */
   UNIQUEINDEX_CONFLICT,
+  INVALID_COMPOP,
   /* buffer pool part */
   BUFFERPOOL_EXIST = (BUFFERPOOL | (RCBufferPool::BP_EXIST << 8)),
   BUFFERPOOL_FILEERR = (BUFFERPOOL | (RCBufferPool::BP_FILEERR << 8)),

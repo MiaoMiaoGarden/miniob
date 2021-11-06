@@ -349,10 +349,12 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
     }
 
     const int normal_field_start_index = table_meta_.sys_field_num();
+    std::vector<bool> fields_nullable;
+    table_meta_.fields_nullable_type(fields_nullable);
     for (int i = 0; i < value_num; i++) {
         const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
         const Value &value = values[i];
-        if (field->type() != value.type) {
+        if (field->type() != value.type && NULLS != value.type) {  // NULLS type can match any type
             LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                       field->name(), field->type(), value.type);
             return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -366,6 +368,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
     for (int i = 0; i < value_num; i++) {
         const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
         const Value &value = values[i];
+        std::string data = (char *)(value.data);
+        // std::transform(data.begin(), data.end(), ::tolower);
         memcpy(record + field->offset(), value.data, field->len());
     }
 
@@ -497,7 +501,7 @@ RC Table::scan_record_by_index(Trx *trx, IndexScanner *scanner, ConditionFilter 
     while (record_count < limit) {
         rc = scanner->next_entry(&rid);
         if (rc != RC::SUCCESS) {
-            if (RC::RECORD_EOF == rc) {
+            if (RC::RECORD_EOF == rc || RC::RECORD_NO_MORE_IDX_IN_MEM == rc) {
                 rc = RC::SUCCESS;
                 break;
             }
@@ -641,9 +645,17 @@ RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value
     }
 
     if (value_num <= 0 || nullptr == value ||
-        table_meta_.field(attr_index + normal_field_start_index)->type() != value->type) {
+        table_meta_.field(attr_index + normal_field_start_index)->type() != value->type && NULLS != value->type) {
         LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
         return RC::INVALID_ARGUMENT;
+    }
+
+    std::string data = (char *)(value->data);
+    // std::transform(data.begin(), data.end(), ::tolower);
+    if(data=="!null"){
+        if (table_meta_.field(attr_index + normal_field_start_index)->nullable()==false){
+            return RC::CONSTRAINT_NOTNULL;
+        }
     }
 
     // construct index_scanner

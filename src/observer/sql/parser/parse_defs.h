@@ -37,12 +37,15 @@ typedef enum {
     LESS_THAN,    //"<"     3
     GREAT_EQUAL,  //">="    4
     GREAT_THAN,   //">"     5
-    NO_OP
+    NO_OP,
+    LESS_THAN_GREAT_THAN,
+    IS_COMPOP,
+    IS_NOT_COMPOP
 } CompOp;
 
 //属性值类型
 typedef enum {
-    UNDEFINED, CHARS, INTS, FLOATS, DATES
+    UNDEFINED, CHARS, INTS, FLOATS, DATES, NULLS  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
 } AttrType;
 
 //属性值
@@ -50,6 +53,12 @@ typedef struct _Value {
     AttrType type;  // type of value
     void *data;     // value
 } Value;
+
+typedef struct _Orderby
+{
+    RelAttr *attr;
+    int asc_desc; // 0: asc, 1:desc 
+}Orderby;
 
 typedef struct _Condition {
     int left_is_attr;    // TRUE if left-hand side is an attribute
@@ -71,6 +80,9 @@ typedef struct {
     char *relations[MAX_NUM];     // relations in From clause
     size_t condition_num;          // Length of conditions in Where clause
     Condition conditions[MAX_NUM];    // conditions in Where clause
+  RelAttr *groupby_attr;
+  int nOrderbys;
+  Orderby orderbys[MAX_NUM];
 } Selects;
 // use for multi insert
 typedef struct {
@@ -106,6 +118,7 @@ typedef struct {
     char *name;     // Attribute name
     AttrType type;  // Type of attribute
     size_t length;  // Length of attribute
+    int nullable;
 } AttrInfo;
 
 // struct of craete_table
@@ -176,7 +189,8 @@ enum SqlCommandFlag {
     SCF_ROLLBACK,
     SCF_LOAD_DATA,
     SCF_HELP,
-    SCF_EXIT
+    SCF_EXIT,
+    SCF_FAILURE
 };
 // struct of flag and sql_struct
 typedef struct Query {
@@ -188,13 +202,19 @@ typedef struct Query {
 extern "C" {
 #endif  // __cplusplus
 
-void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name,int isaggre,int aggre_type);
+void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name);
 void relation_attr_destroy(RelAttr *relation_attr);
 
-void value_init_integer(Value *value, int v);
-void value_init_float(Value *value, float v);
+void value_init_integer(Value *value, const char *v);
+void value_init_float(Value *value, const char *v);
+
+void value_init_integer_int(Value *value, int v);
+void value_init_float_float(Value *value, float v);
+
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);
+void value_init_null(Value *value);
+void orderby_init_append(Selects *select, int asc_desc, RelAttr *attr, Orderby *orderby);
 
 void value_destroy(Value *value);
 
@@ -202,7 +222,8 @@ void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr
                     int right_is_attr, RelAttr *right_attr, Value *right_value);
 void condition_destroy(Condition *condition);
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length);
+void string2int(int *int_length, const char* length);
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int nullable);
 void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);
