@@ -27,7 +27,7 @@ bool is_valid_aggre(const char *attr, AggreType aggre_type);
 class AggregateValue {
 public:
     AggregateValue() = default;
-    virtual RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) = 0;
+    virtual RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) = 0;
     virtual std::shared_ptr<TupleValue> value() = 0;
     virtual ~AggregateValue() {
     }
@@ -38,7 +38,7 @@ class AggregateMaxValue : public AggregateValue {
 public:
     AggregateMaxValue() = default;
     ~AggregateMaxValue() = default;
-    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     std::shared_ptr<TupleValue> value_;
@@ -48,7 +48,7 @@ class AggregateMinValue : public AggregateValue {
 public:
     AggregateMinValue() = default;
     ~AggregateMinValue() = default;
-    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     std::shared_ptr<TupleValue> value_;
@@ -59,7 +59,7 @@ public:
     AggregateAvgValue(): sum(0), count(0) {
     }
     ~AggregateAvgValue() = default;
-    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     float sum;
@@ -71,10 +71,21 @@ public:
     AggregateCountValue(): count(0) {
     }
     ~AggregateCountValue() = default;
-    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) override;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) override;
     std::shared_ptr<TupleValue> value() override;
 private:
     int count;
+};
+
+class AggregateNonValue : public AggregateValue {
+public:
+    AggregateNonValue(): tuple_value_(nullptr){
+    }
+    ~AggregateNonValue() = default;
+    RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) override;
+    std::shared_ptr<TupleValue> value() override;
+private:
+    std::shared_ptr<TupleValue> tuple_value_;
 };
 
 class AggregateExeNode {
@@ -83,7 +94,7 @@ public:
     ~AggregateExeNode() = default;
     
     RC add_value(const std::shared_ptr<TupleValue> &tuple_value, int index, 
-                    AggreType agg_type, AttrType attr_type) {
+                    AggreType agg_type, AttrType attr_type, bool count_null) {
         AggregateValue* value = record_map[index].get();
         if (value == nullptr) {
             if (agg_type == COUNT) {
@@ -94,10 +105,12 @@ public:
                 value = new AggregateMaxValue();
             } else if (agg_type == AVG) {
                 value = new AggregateAvgValue();
+            } else if ( agg_type == NON ) {
+                value = new AggregateNonValue();
             }
             record_map[index].reset(value);
         }
-        return value->add(tuple_value, attr_type);
+        return value->add(tuple_value, attr_type, count_null);
     }
 
     std::shared_ptr<TupleValue> get_value(int index) {
@@ -109,6 +122,61 @@ public:
     }
 private:
     std::unordered_map<int, std::unique_ptr<AggregateValue>> record_map;
+};
+
+class GroupHandler {
+public:
+    GroupHandler() = default;
+    ~GroupHandler() {
+    }
+    int get_group(TupleValue *tuplevalue, AttrType type){
+        if(type==AttrType::CHARS){
+            std::string value = (static_cast<StringValue*>(tuplevalue))->get_value();
+            if(string_group_map.find(value)==string_group_map.end()){
+                string_group_map[value] = string_group_map.size();
+            }
+            return string_group_map[value];
+        } else if (type==AttrType::FLOATS) {
+            float value = (static_cast<FloatValue*>(tuplevalue))->get_value();
+            if(float_group_map.find(value)==float_group_map.end()){
+                float_group_map[value] = float_group_map.size();
+            }
+            return float_group_map[value];
+        } else if (type == AttrType::INTS) {
+            int value = (static_cast<IntValue*>(tuplevalue))->get_value();
+            if(int_group_map.find(value)==int_group_map.end()){
+                int_group_map[value] = int_group_map.size();
+            }
+            return int_group_map[value];
+        } else if (type == AttrType::DATES) {
+            int value = (static_cast<DateValue*>(tuplevalue))->get_value();
+            if(int_group_map.find(value)==int_group_map.end()){
+                int_group_map[value] = int_group_map.size();
+            }
+            return int_group_map[value];
+        } else {
+            return -1;
+        }
+    }
+
+    size_t get_group_num(AttrType type){
+        if(type==AttrType::CHARS){
+            return string_group_map.size();
+        } else if(type==AttrType::FLOATS){
+            return float_group_map.size();
+        } else if(type==AttrType::INTS) {
+            return int_group_map.size();
+        } else if(type==AttrType::DATES) {
+            return int_group_map.size();
+        } else {
+            return -1;
+        }
+    }
+private:
+    std::unordered_map<std::string, int> string_group_map;
+    std::unordered_map<int, int> int_group_map;
+    std::unordered_map<float, int> float_group_map;
+protected:
 };
 
 /*

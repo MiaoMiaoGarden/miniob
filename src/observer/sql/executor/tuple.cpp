@@ -88,8 +88,8 @@ void TupleSchema::add(AttrType type, const char *table_name, const char *field_n
     fields_.emplace_back(type, table_name, field_name);
 }
 
-void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType agg_type) {
-    fields_.emplace_back(type, table_name, field_name, isaggre, agg_type);
+void TupleSchema::add(AttrType type, const char *table_name, const char *field_name, AggreType agg_type) {
+    fields_.emplace_back(type, table_name, field_name, agg_type);
 }
 
 
@@ -155,7 +155,7 @@ void TupleSchema::print(std::ostream &os, bool flag) const {
 
     for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
          iter != end; ++iter) {
-        if (iter->isaggre) {
+        if (iter->aggre_type!=AggreType::NON) {
             if (iter->aggre_type == AggreType::MIN) {
                 os << "min(";
             } else if (iter->aggre_type == AggreType::MAX) {
@@ -170,13 +170,13 @@ void TupleSchema::print(std::ostream &os, bool flag) const {
             os << iter->table_name() << ".";
         }
         os << iter->field_name();
-        if (iter->isaggre) {
+        if (iter->aggre_type!=AggreType::NON) {
             os << ")";
         }
         os << " | ";
     }
 
-    if (fields_.back().isaggre) {
+    if (fields_.back().aggre_type != AggreType::NON) {
         if (fields_.back().aggre_type == AggreType::MIN) {
             os << "min(";
         } else if (fields_.back().aggre_type == AggreType::MAX) {
@@ -192,7 +192,7 @@ void TupleSchema::print(std::ostream &os, bool flag) const {
         os << fields_.back().table_name() << ".";
     }
     os << fields_.back().field_name();
-    if (fields_.back().isaggre) {
+    if (fields_.back().aggre_type != AggreType::NON) {
         os << ")";
     }
 
@@ -213,6 +213,17 @@ void TupleSchema::print_with_tablename(std::ostream &os) const {
 
     os << fields_.back().table_name() << ".";
     os << fields_.back().field_name() << std::endl;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+bool is_float_output(AttrType attr_type, AggreType aggre_type){
+    if ( attr_type == AttrType::FLOATS ){
+        return true;
+    }
+    if ( aggre_type == AggreType::AVG ){
+        return true;
+    }
+    return false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -295,62 +306,105 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     const TupleSchema &input_schema = this->schema();
     const std::vector<TupleField> &tuple_fields = input_schema.fields();
     RC rc = RC::SUCCESS;
-    bool count_flag = 0;
+    
+    int index_num = tuple_fields.size();
+    std::vector<bool> field_count_null;
 
-    AggregateExeNode agg_exec_node;
-    for (auto& tuple : tuple_set.tuples()) {
-        Tuple new_tuple;
-        int index = 0;
-        for (auto& tuple_field : tuple_fields) {
-            if (tuple_field.aggre_type == AggreType::COUNT && 
-                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
-                // 这个地方可以优化，对于 select count(*) from t; 这种情况，可以单独判断
-                // COUNT(*), COUNT(1), ...
-                count_flag = 1;
-            } else {
+    bool select_isaggre = false;
+    
+    for (auto &field : tuple_fields) {
+        if (field.aggre_type == AggreType::COUNT && 
+                    is_valid_aggre(field.field_name(), field.aggre_type)){
+            field_count_null.push_back(true);
+        } else {
+            field_count_null.push_back(false);
+        }
+        if (field.aggre_type != AggreType::NON){
+            select_isaggre = true;
+        }
+    }
+    
+    // not aggregate selection, return immediately
+    if (!select_isaggre){
+        for (auto& tuple : tuple_set.tuples()) {
+            Tuple new_tuple;
+            for (auto& tuple_field : tuple_fields){
                 int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
                 if (i == -1) {
                     rc = RC::SCHEMA_FIELD_NOT_EXIST;
                     return rc;
                 }
                 const std::shared_ptr<TupleValue> &value_ptr = tuple.get_pointer(i);
-                if (tuple_field.isaggre) {
-                    rc = agg_exec_node.add_value(value_ptr, index, tuple_field.aggre_type, tuple_field.type());
-                    if (rc != RC::SUCCESS) {
-                        return rc;
-                    }
-                } else {
-                    new_tuple.add(value_ptr);
-                }
+                new_tuple.add(value_ptr);
+            }
+            add(std::move(new_tuple));
+        }
+        return RC::SUCCESS;
+    }
+
+    // need to aggregate
+    //   init groupby
+    const RelAttr *groupby_attr = input_schema.get_groupby();
+    const char* group_relation_name = input_schema.group_relation_name();
+    int groupby_attr_index = -1;
+    AttrType groupattr_type = AttrType::UNDEFINED;
+    if(groupby_attr!=nullptr){
+       groupby_attr_index = output_schema.index_of_field(group_relation_name, groupby_attr->attribute_name);
+       groupattr_type = output_schema.field(groupby_attr_index).type();
+    }
+    GroupHandler *group_handler = new GroupHandler();
+
+    AggregateExeNode agg_exec_node;
+
+    // group and aggregate
+    for (auto& tuple : tuple_set.tuples()) {
+        Tuple new_tuple;
+        int index = 0;
+        int group = 0;
+        if ( groupby_attr_index!=-1 ){
+            TupleValue *tuplevalue = tuple.get_pointer(groupby_attr_index).get();
+            group = group_handler->get_group(tuplevalue, groupattr_type);
+            if(group<0){
+                return RC::GENERIC_ERROR;
+            }
+        }
+        for (auto& tuple_field : tuple_fields) {
+            int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
+            if(is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
+                i = 0;
+            }
+            if (i == -1) {
+                rc = RC::SCHEMA_FIELD_NOT_EXIST;
+                return rc;
+            }
+            const std::shared_ptr<TupleValue> &value_ptr = tuple.get_pointer(i);
+            rc = agg_exec_node.add_value(value_ptr, index+group*index_num, tuple_field.aggre_type, tuple_field.type(),field_count_null[index]);
+            if (rc != RC::SUCCESS) {
+                return rc;
             }
             index += 1;
         }
-        if (new_tuple.size() != 0) {
-            add(std::move(new_tuple));
-        }
     }
-    if (agg_exec_node.size() || count_flag) {
+
+    // get aggregated data
+    int group_num = 1;
+    if(groupby_attr_index!=-1){
+        group_num = group_handler->get_group_num(groupattr_type);
+    }
+    for(int group_id = 0; group_id < group_num; group_id++){
         Tuple new_tuple;
         int index = 0;
         for (auto& tuple_field : tuple_fields) {
-            if (tuple_field.aggre_type == AggreType::COUNT && 
-                    is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
-                std::shared_ptr<TupleValue> value_ptr = std::make_shared<IntValue>(tuple_set.size());
-                new_tuple.add(value_ptr);
-            } else {
-                const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index);
+            const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index+group_id*index_num);
                 // 处理精度问题
-                if (tuple_field.type() == FLOATS && 
-                        (tuple_field.aggre_type == AggreType::MAX ||
-                         tuple_field.aggre_type == AggreType::MIN)) {
+            if (is_float_output(tuple_field.type(), tuple_field.aggre_type)) {
                     FloatValue *fvalue_ptr = dynamic_cast<FloatValue *>(value_ptr.get());
                     float value = round(100 * (fvalue_ptr->get_value())) / 100.0;
                     new_tuple.add(value);
-                } else {
-                    new_tuple.add(value_ptr);
-                }
+            } else {
+                new_tuple.add(value_ptr);
             }
-            index += 1;
+            index += 1;  
         }
         add(std::move(new_tuple));
     }
@@ -418,5 +472,4 @@ void TupleRecordConverter::add_record(const char *record) {
     if (tuple.size() != 0)
         tuple_set_.add(std::move(tuple));
 }
-
 

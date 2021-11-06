@@ -317,7 +317,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
     // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
     std::vector<SelectExeNode *> select_nodes;
-    char response[256];
+    // char response[256];
     for (size_t i = 0; i < selects.relation_num; i++) {
         std::string table_name(selects.relations[i]);
         SelectExeNode *select_node = new SelectExeNode;
@@ -358,6 +358,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     TupleSchema output_scheam;
     rc = gen_output_scheam(tables_map, selects, output_scheam);
+    output_scheam.set_groupby(selects.groupby_attr,selects.relations[0]);
     if (rc != RC::SUCCESS) {
         snprintf(response, sizeof(response), "FAILURE\n");
         session_event->set_response(response);
@@ -431,7 +432,7 @@ RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tabl
             } else {
                 attr_type = table->table_meta().field(attr.attribute_name)->type();
             }
-            output_scheam.add(attr_type, selects.relations[0], attr.attribute_name, true, attr.aggre_type);
+            output_scheam.add(attr_type, selects.relations[0], attr.attribute_name, attr.aggre_type);
         } else {
             // 表属性
             if (attr.relation_name == nullptr) {
@@ -533,6 +534,13 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                     }
                 }
             }
+        }
+        RC rc = RC::SUCCESS;
+        if(selects.groupby_attr!=nullptr){
+            rc = schema_add_field(table, selects.groupby_attr->attribute_name, schema);
+        }
+        if (rc != RC::SUCCESS) {
+            return rc;
         }
     }
 

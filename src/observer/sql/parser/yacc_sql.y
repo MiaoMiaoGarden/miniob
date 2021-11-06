@@ -148,7 +148,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <number> type;
 %type <condition1> condition;
 %type <value1> value;
-%type <number> number;
+// %type <number> number;
 
 %%
 
@@ -267,10 +267,12 @@ attr_def_list:
     ;
     
 attr_def:
-    ID_get type LBRACE number RBRACE 
+    ID_get type LBRACE NUMBER RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4, 0);
+			int int_length;
+			string2int(&int_length, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, int_length, 0);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -308,9 +310,6 @@ attr_def:
 		}
 
     ;
-number:
-		NUMBER {$$ = $1;}
-		;
 type:
 	INT_T { $$=INTS; }
        | STRING_T { $$=CHARS; }

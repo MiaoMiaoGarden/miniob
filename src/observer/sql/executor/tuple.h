@@ -67,11 +67,11 @@ private:
 
 class TupleField {
 public:
-  TupleField(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType aggre_type) :
-          type_(type), table_name_(table_name), field_name_(field_name), isaggre(isaggre), aggre_type(aggre_type){
+  TupleField(AttrType type, const char *table_name, const char *field_name, AggreType aggre_type) :
+          type_(type), table_name_(table_name), field_name_(field_name), aggre_type(aggre_type){
   }
   TupleField(AttrType type, const char *table_name, const char *field_name) :
-          type_(type), table_name_(table_name), field_name_(field_name), isaggre(false), aggre_type(COUNT){
+          type_(type), table_name_(table_name), field_name_(field_name), aggre_type(AggreType::NON){
   }
 
   AttrType  type() const{
@@ -93,7 +93,6 @@ private:
   std::string field_name_;
 
 public:
-  bool isaggre;
   AggreType aggre_type;
 };
 
@@ -103,7 +102,7 @@ public:
   ~TupleSchema() = default;
 
   void add(AttrType type, const char *table_name, const char *field_name);
-  void add(AttrType type, const char *table_name, const char *field_name, bool isaggre, AggreType agg_type);
+  void add(AttrType type, const char *table_name, const char *field_name, AggreType agg_type);
   void add_if_not_exists(AttrType type, const char *table_name, const char *field_name);
   // void merge(const TupleSchema &other);
   void append(const TupleSchema &other);
@@ -121,6 +120,23 @@ public:
     fields_.clear();
   }
 
+  void set_groupby(RelAttr *groupby, char* group_relation_name) {
+    groupby_ = groupby;
+    if(groupby == nullptr) return;
+    if(groupby->relation_name==nullptr){
+        group_relation_name_ = group_relation_name;
+    } else {
+      group_relation_name_ = groupby->relation_name;
+    }
+  }
+  const RelAttr *get_groupby() const {
+    return groupby_;
+  }
+
+  const char *group_relation_name() const {
+    return group_relation_name_;
+  }
+
   void print(std::ostream &os) const;
   void print(std::ostream &os, bool flag) const;
   void print_with_tablename(std::ostream &os) const;
@@ -128,6 +144,8 @@ public:
   static void from_table(const Table *table, TupleSchema &schema);
 private:
   std::vector<TupleField> fields_;
+  RelAttr *groupby_;
+  char *group_relation_name_;
 };
 
 class TupleSet {
