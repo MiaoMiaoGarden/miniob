@@ -174,6 +174,10 @@ public:
         return value_ - date_other.value_;
     }
 
+    int get_value(){
+      return value_;
+    }
+
 private:
     int value_;
 };

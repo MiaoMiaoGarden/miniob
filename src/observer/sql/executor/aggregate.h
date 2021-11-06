@@ -148,6 +148,12 @@ public:
                 int_group_map[value] = int_group_map.size();
             }
             return int_group_map[value];
+        } else if (type == AttrType::DATES) {
+            int value = (static_cast<DateValue*>(tuplevalue))->get_value();
+            if(int_group_map.find(value)==int_group_map.end()){
+                int_group_map[value] = int_group_map.size();
+            }
+            return int_group_map[value];
         } else {
             return -1;
         }
@@ -160,8 +166,11 @@ public:
             return float_group_map.size();
         } else if(type==AttrType::INTS) {
             return int_group_map.size();
+        } else if(type==AttrType::DATES) {
+            return int_group_map.size();
+        } else {
+            return -1;
         }
-
     }
 private:
     std::unordered_map<std::string, int> string_group_map;
