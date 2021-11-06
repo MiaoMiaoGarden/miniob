@@ -46,7 +46,7 @@ bool is_valid_aggre(const char *attr, AggreType aggre_type) {  // number, float,
 }
 
 
-RC AggregateMinValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+RC AggregateMinValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) {
     RC rc = RC::SUCCESS;
     if (tuple_value->is_null()) {
         return rc;
@@ -57,7 +57,7 @@ RC AggregateMinValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrTy
     return rc;
 }
 
-RC AggregateMaxValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+RC AggregateMaxValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) {
     RC rc = RC::SUCCESS;
     if (tuple_value->is_null()) {
         return rc;
@@ -68,7 +68,7 @@ RC AggregateMaxValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrTy
     return rc;
 }
 
-RC AggregateAvgValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
+RC AggregateAvgValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) {
     RC rc = RC::SUCCESS;
     if (type != FLOATS && type != INTS) {
         rc = RC::GENERIC_ERROR;
@@ -88,10 +88,15 @@ RC AggregateAvgValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrTy
     return rc;
 }
 
-RC AggregateCountValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type) {
-    if (!tuple_value->is_null()) {
+RC AggregateCountValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) {
+    if ( (tuple_value->is_null() && count_null) || (!tuple_value->is_null()) ) {
         count += 1;
     }
+    return RC::SUCCESS;
+}
+
+RC AggregateNonValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) {
+    tuple_value_ = tuple_value;
     return RC::SUCCESS;
 }
 
@@ -114,4 +119,10 @@ std::shared_ptr<TupleValue> AggregateAvgValue::value() {
 std::shared_ptr<TupleValue> AggregateCountValue::value() {
     std::shared_ptr<TupleValue> value = std::make_shared<FloatValue>(count);
     return value;
+}
+
+std::shared_ptr<TupleValue> AggregateNonValue::value() {
+    // std::shared_ptr<TupleValue> value(&tuple_value_);
+    // return value;
+    return tuple_value_;
 }

@@ -82,7 +82,7 @@ typedef struct {
     Condition conditions[MAX_NUM];    // conditions in Where clause
   RelAttr *groupby_attr;
   int nOrderbys;
-  Orderby *orderbys[MAX_NUM];
+  Orderby orderbys[MAX_NUM];
 } Selects;
 // use for multi insert
 typedef struct {
@@ -222,6 +222,7 @@ void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr
                     int right_is_attr, RelAttr *right_attr, Value *right_value);
 void condition_destroy(Condition *condition);
 
+void string2int(int *int_length, const char* length);
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int nullable);
 void attr_info_destroy(AttrInfo *attr_info);
 

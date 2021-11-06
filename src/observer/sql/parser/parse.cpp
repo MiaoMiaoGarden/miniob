@@ -102,7 +102,7 @@ void value_destroy(Value *value) {
 void orderby_init_append(Selects *select, int asc_desc, RelAttr *attr, Orderby *orderby){
     orderby->attr = attr;
     orderby->asc_desc = asc_desc;
-    select->orderbys[select->nOrderbys++] = orderby;
+    select->orderbys[select->nOrderbys++] = *orderby;
 }
 
 void condition_init(Condition *condition, CompOp comp,
@@ -134,6 +134,10 @@ void condition_destroy(Condition *condition) {
     } else {
         value_destroy(&condition->right_value);
     }
+}
+
+void string2int(int *int_length, const char* length){
+    *int_length = atoi(length);
 }
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int nullable) {
