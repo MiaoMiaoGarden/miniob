@@ -425,12 +425,13 @@ RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tabl
             AttrType attr_type;
 
             Table *table = tables_map[table_name1];
-            if (attr.aggre_type != AggreType::NON && is_valid_aggre(attr.attribute_name, attr.aggre_type)) {  // count(1) find the first one attr
-                // count(*), count(1), ...
-                // 表的第一个属性
-                attr_type = table->table_meta().field(0)->type();
-            } else {
+            bool is_star_num_float = is_valid_aggre(attr.attribute_name);
+            if(!is_star_num_float){  // attribute 
                 attr_type = table->table_meta().field(attr.attribute_name)->type();
+            } else if (attr.aggre_type == AggreType::COUNT) { // count(1)
+                attr_type = table->table_meta().field(0)->type();
+            } else { // min(1)
+                return RC::GENERIC_ERROR;
             }
             output_scheam.add(attr_type, selects.relations[0], attr.attribute_name, attr.aggre_type);
         } else {
@@ -517,8 +518,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                 char parsed[100];
                 parse_attr(attr.attribute_name, attr.aggre_type, parsed); // if not aggre, will do nothing and return
                 */
-                if (0 == strcmp("*", attr.attribute_name) || 
-                        (attr.aggre_type != NON && is_valid_aggre(attr.attribute_name, attr.aggre_type))) {
+                if (0 == strcmp("*", attr.attribute_name) || is_valid_aggre(attr.attribute_name) ) {
 
                     // 列出这张表所有字段
                     TupleSchema::from_table(table, schema);
@@ -533,6 +533,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                         return rc;
                     }
                 }
+
             }
         }
         RC rc = RC::SUCCESS;

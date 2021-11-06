@@ -313,8 +313,7 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     bool select_isaggre = false;
     
     for (auto &field : tuple_fields) {
-        if (field.aggre_type == AggreType::COUNT && 
-                    is_valid_aggre(field.field_name(), field.aggre_type)){
+        if (field.aggre_type == AggreType::COUNT && is_valid_aggre(field.field_name())){
             field_count_null.push_back(true);
         } else {
             field_count_null.push_back(false);
@@ -370,7 +369,7 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
         }
         for (auto& tuple_field : tuple_fields) {
             int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
-            if(is_valid_aggre(tuple_field.field_name(), tuple_field.aggre_type)) {
+            if(is_valid_aggre(tuple_field.field_name())) {
                 i = 0;
             }
             if (i == -1) {
