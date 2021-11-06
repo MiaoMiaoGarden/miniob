@@ -22,7 +22,7 @@
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
 
-bool is_valid_aggre(const char *attr, AggreType aggre_type);
+bool is_valid_aggre(const char *attr);
 
 class AggregateValue {
 public:

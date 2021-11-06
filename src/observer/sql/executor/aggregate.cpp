@@ -23,9 +23,9 @@
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
 
-bool is_valid_aggre(const char *attr, AggreType aggre_type) {  // number, float, *
+bool is_valid_aggre(const char *attr) {  // number, float, *
     if (strcmp("*", attr) == 0) {
-        return aggre_type == COUNT;
+        return true;
     }
 
     int i = 0;
