@@ -414,7 +414,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map, 
                 const Selects &selects, TupleSchema &output_scheam){
 
-    for (int i = selects.attr_num - 1; i >= 0; i--) {
+    for (int i = 0; i <selects.attr_num; i++) {
         const RelAttr &attr = selects.attributes[i];
         if (attr.aggre_type != AggreType::NON) {
             // 聚合属性
