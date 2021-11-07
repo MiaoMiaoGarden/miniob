@@ -151,22 +151,31 @@ public:
     }
 
     bool is_null() const override {
-        return false;
+        char *char_value = (char*)(&value_);
+        if(*char_value=='!'){
+          return true;
+        } else {
+          return false;
+        }
     }
     void to_string(std::ostream &os) const override {
-        // os << value_;
-        int year = value_ / 10000;
-        int month = (value_ - year * 10000) / 100;
-        int day = value_ - year * 10000 - month * 100;
-        std::string year_str = std::to_string(year);
-        std::string month_str = std::to_string(month);
-        std::string day_str = std::to_string(day);
-        if(month_str.size() < 2)
-            month_str = "0" + month_str;
-        if(day_str.size() < 2)
-            day_str = "0" + day_str;
-        std::string date = year_str + "-" + month_str + "-" + day_str;
-        os << date;
+        if(is_null()){
+            os << "null";
+        } else {
+                    // os << value_;
+            int year = value_ / 10000;
+            int month = (value_ - year * 10000) / 100;
+            int day = value_ - year * 10000 - month * 100;
+            std::string year_str = std::to_string(year);
+            std::string month_str = std::to_string(month);
+            std::string day_str = std::to_string(day);
+            if(month_str.size() < 2)
+                month_str = "0" + month_str;
+            if(day_str.size() < 2)
+                day_str = "0" + day_str;
+            std::string date = year_str + "-" + month_str + "-" + day_str;
+            os << date;
+        }
     }
 
     int compare(const TupleValue &other) const override {

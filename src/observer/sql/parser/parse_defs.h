@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
-typedef enum {COUNT=0,MIN=1,MAX=2,AVG=3,NON=4} AggreType;
+typedef enum {COUNT=4,MIN=1,MAX=2,AVG=3,NON=0} AggreType;
 //属性结构体
 typedef struct {
     char *relation_name;   // relation name (may be NULL) 表名

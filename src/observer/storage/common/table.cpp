@@ -233,6 +233,7 @@ RC Table::insert_record(Trx *trx, Record *record) {
     if (insert_unique_conflict(record->data)) {
         return RC::CONSTRAINT_UNIQUE;
     }
+    
     rc = record_handler_->insert_record(record->data, table_meta_.record_size(), &record->rid);
     if (rc != RC::SUCCESS) {
         LOG_ERROR("Insert record failed. table name=%s, rc=%d:%s", table_meta_.name(), rc, strrc(rc));
@@ -356,6 +357,11 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
         const Value &value = values[i];
         if (field->type() != value.type && NULLS != value.type) {  // NULLS type can match any type
             LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+                      field->name(), field->type(), value.type);
+            return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }
+        if (NULLS == value.type && fields_nullable[i]==false) {
+            LOG_ERROR("fields not nullable. field name=%s, type=%d, but given=%d",
                       field->name(), field->type(), value.type);
             return RC::SCHEMA_FIELD_TYPE_MISMATCH;
         }

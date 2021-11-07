@@ -443,6 +443,43 @@ select:				/*  select 语句的语法解析树*/
 	}
 	;
 
+select_attr:
+    selectvalue attr_list{  
+			
+		}
+	| aggretype LBRACE aggrevalue RBRACE attr_list{
+			for (int i = 0; i<CONTEXT->ssql->sstr.selection.attr_num; i++){
+				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
+			}
+		}
+	| aggretype LBRACE  RBRACE attr_list{
+			CONTEXT->ssql->flag = SCF_FAILURE;
+		}
+
+    ;
+
+selectvalue:
+	STAR {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ID  {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+  	| ID DOT ID  {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    | ID DOT STAR  {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        }
+
 aggrevalue:
 	STAR aggrevaluelist{  
 			RelAttr attr;
@@ -486,37 +523,23 @@ aggrevaluelist:
 			CONTEXT->ssql->flag = SCF_FAILURE;
 	}
 
-
-select_attr:
-    STAR {  
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
-	| aggretype LBRACE aggrevalue RBRACE attr_list{
-			for (int i = 0; i<CONTEXT->ssql->sstr.selection.attr_num; i++){
-				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
-			}
-		}
-	| aggretype LBRACE  RBRACE attr_list{
-			CONTEXT->ssql->flag = SCF_FAILURE;
-		}
-    | ID attr_list {
+selectvalue_commaed:
+	ID  {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-  	| ID DOT ID attr_list {
+  	| ID DOT ID  {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | ID DOT STAR attr_list {
+    | ID DOT STAR  {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
         }
-    ;
+
 attr_list:
     /* empty */
 	| COMMA aggretype LBRACE aggrevalue RBRACE attr_list{
@@ -524,25 +547,9 @@ attr_list:
 				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
 			}
 	    }
-    | COMMA ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-     	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
+    | COMMA selectvalue_commaed attr_list {
+			
       }
-    | COMMA ID DOT ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, $4);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
-  	  }
-    | COMMA ID DOT STAR attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        }
   	;
 
 rel_list:
