@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <functional>
 #include "sql/parser/parse_defs.h"
 #include "functional"
+
 int float_compare(float f1, float f2) {
     float result = f1 - f2;
     if (result < 1e-6 && result > -1e-6) {
@@ -1852,8 +1853,8 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
             s2 = value_;
             break;
         case DATES:
-            i1=*(int *)pkey;
-            i2=*(int *)value_;
+            i1 = *(int *) pkey;
+            i2 = *(int *) value_;
             break;
         default:
             LOG_PANIC("Unknown attr type: %d", attr_type);
