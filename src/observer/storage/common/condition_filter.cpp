@@ -161,7 +161,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
     bool left_is_null = (*left_value == '!');
     bool right_is_null = (*right_value == '!');
 
-        if (left_is_null && right_is_null) {  // null comop null
+    if (left_is_null && right_is_null) {  // null comop null
         if (comp_op_ == IS_COMPOP || comp_op_ == EQUAL_TO) {   // is
             return true;
         } else if (comp_op_ == IS_NOT_COMPOP || comp_op_ == NOT_EQUAL) {   // is not
