@@ -624,170 +624,233 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     return rc;
 }
 
-RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
-                        const Condition conditions[], int *updated_count) {
-    // todo: no use of RecodeUpdater; no trx replemented
 
+class RecordUpdater {
+public:
+  RecordUpdater(Table &table, Trx *trx,const char *attribute_name, const Value *value) : 
+  table_(table), trx_(trx), attribute_name_(attribute_name),value_(value){
+  }
+
+  RC update_record(Record *record) {
     RC rc = RC::SUCCESS;
-    CompositeConditionFilter filter;
-    rc = filter.init(*this, conditions, condition_num);
-    if (rc != RC::SUCCESS) {
-        LOG_ERROR("filter init failed");
-        return RC::GENERIC_ERROR;
-    }
-    *updated_count = 0;
-    int limit = INT_MAX;  // no limit
-    Record record;
-    const int normal_field_start_index = table_meta_.sys_field_num();
-    int value_num = table_meta_.field_num() - table_meta_.sys_field_num();
-
-    // find the index of attribute_name in an entry.data
-    int record_size = table_meta_.record_size();
-    int attr_index;
-    for (attr_index = 0; attr_index < value_num; attr_index++) {
-        if (0 == strcmp(table_meta_.field(attr_index + normal_field_start_index)->name(), attribute_name)) {
-            break;
-        }
-    }
-
-    if (value_num <= 0 || nullptr == value ||
-        table_meta_.field(attr_index + normal_field_start_index)->type() != value->type && NULLS != value->type) {
-        LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
-        return RC::INVALID_ARGUMENT;
-    }
-
-    std::string data = (char *)(value->data);
-    // std::transform(data.begin(), data.end(), ::tolower);
-    if(data=="!null"){
-        if (table_meta_.field(attr_index + normal_field_start_index)->nullable()==false){
-            return RC::CONSTRAINT_NOTNULL;
-        }
-    }
-
-    // construct index_scanner
-    IndexScanner *index_scanner = find_index_for_scan(&filter);
-
-    if (index_scanner != nullptr) { // scan by index
-        RID rid;
-        // update each entry
-        while (*updated_count < limit) {
-            rc = index_scanner->next_entry(&rid);
-            if (rc != RC::SUCCESS) {
-                if (RC::RECORD_EOF == rc) {  // finish updating all entries
-                    rc = RC::SUCCESS;
-                    break;
-                }
-                LOG_ERROR("Failed to scan table by index. rc=%d:%s", rc, strrc(rc));
-                break;
-            }
-
-            // get record
-            rc = record_handler_->get_record(&rid, &record);
-            if (rc != RC::SUCCESS) {
-                LOG_ERROR("Failed to fetch record of rid=%d:%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
-                break;
-            }
-
-            // a second time filter for check, maybe can delete the last part of this line:
-            if ((trx == nullptr || trx->is_visible(this, &record)) && (filter.filter(record))) {
-                // rc = record_reader(&record, context);
-
-                //construct "new_record" for this entry
-                char *new_record_data = new char[record_size];
-
-                for (int i = 0; i < value_num; i++) {
-                    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-                    if (i == attr_index)  // assign value
-                        memcpy(new_record_data + field->offset(), value->data, field->len());
-                    else              // assign record->data
-                        memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
-                }
-
-                Record new_record;
-                new_record.data = new_record_data;
-                new_record.rid = rid;
-
-                rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-                rc = insert_entry_of_indexes(new_record.data, rid);
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-
-                // update
-                rc = record_handler_->update_record(&new_record);
-
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning3. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-            }
-            (*updated_count)++;
-        }
-        // todo: update index?
-        index_scanner->destroy();
-    } else { // no index, use record file scanner
-        RecordFileScanner scanner;
-        rc = scanner.open_scan(*data_buffer_pool_, file_id_, &filter);
-        if (rc != RC::SUCCESS) {
-            LOG_ERROR("failed to open scanner. file id=%d. rc=%d:%s", file_id_, rc, strrc(rc));
-            return rc;
-        }
-
-        rc = scanner.get_first_record(&record);
-        for (; RC::SUCCESS == rc && (*updated_count) < limit; rc = scanner.get_next_record(&record)) {
-            if (trx == nullptr || trx->is_visible(this, &record)) {
-                //construct "new_record" for this entry
-                char *new_record_data = new char[record_size];
-
-                for (int i = 0; i < value_num; i++) {
-                    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-                    if (i == attr_index)  // assign value
-                        memcpy(new_record_data + field->offset(), value->data, field->len());
-                    else              // assign record->data
-                        memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
-                }
-
-                Record new_record;
-                new_record.data = new_record_data;
-                new_record.rid = record.rid;
-
-
-                rc = delete_entry_of_indexes(record.data, record.rid,
-                                             false);  // if not exist this index, don't return err
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-                rc = insert_entry_of_indexes(new_record.data, record.rid);
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-                // update
-                rc = record_handler_->update_record(&new_record);
-
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-            }
-            (*updated_count)++;
-        }
-
-        if (RC::RECORD_EOF == rc) {
-            rc = RC::SUCCESS;
-        } else {
-            LOG_ERROR("failed to scan record. file id=%d, rc=%d:%s", file_id_, rc, strrc(rc));
-        }
-        scanner.close_scan();
+    rc = table_.update_record(trx_, record,attribute_name_,value_);
+    if (rc == RC::SUCCESS) {
+      updated_count_++;
     }
     return rc;
+  }
+
+  int updated_count() const {
+    return updated_count_;
+  }
+
+private:
+  Table & table_;
+  Trx *trx_;
+  const char *attribute_name_;
+  const Value *value_;
+  int updated_count_ = 0;
+};
+
+static RC record_reader_update_adapter(Record *record, void *context) {
+  RecordUpdater &record_updater = *(RecordUpdater *)context;
+  return record_updater.update_record(record);
 }
+
+RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute_name, const Value *value, int *updated_count) {
+  RecordUpdater updater(*this,trx,attribute_name,value);
+  RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
+  if (updated_count != nullptr) {
+    *updated_count = updater.updated_count();
+  }
+  return rc;
+}
+
+RC Table::update_record(Trx *trx, Record *record,const char *attribute_name, const Value *value) {
+  RC rc = RC::SUCCESS;
+  Record record_new;
+  record_new.rid = record->rid;
+  char *record_data = record->data;
+  const FieldMeta *field = table_meta_.field(attribute_name);
+  if(field == nullptr){
+    LOG_ERROR("Invalid field name.Wrong field name=%s",attribute_name);
+    return RC::SCHEMA_FIELD_NOT_EXIST;
+  }
+  if (field->type() != value->type) {
+    LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+      field->name(), field->type(), value->type);
+    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+  }
+  memcpy(record_data + field->offset(), value->data, field->len());
+  record_new.data = record_data;
+  rc = record_handler_->update_record(&record_new);
+  return rc;
+}
+
+// RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
+//                         const Condition conditions[], int *updated_count) {
+//     // todo: no use of RecodeUpdater; no trx replemented
+
+//     RC rc = RC::SUCCESS;
+//     CompositeConditionFilter filter;
+//     rc = filter.init(*this, conditions, condition_num);
+//     if (rc != RC::SUCCESS) {
+//         LOG_ERROR("filter init failed");
+//         return RC::GENERIC_ERROR;
+//     }
+//     *updated_count = 0;
+//     int limit = INT_MAX;  // no limit
+//     Record record;
+//     const int normal_field_start_index = table_meta_.sys_field_num();
+//     int value_num = table_meta_.field_num() - table_meta_.sys_field_num();
+
+//     // find the index of attribute_name in an entry.data
+//     int record_size = table_meta_.record_size();
+//     int attr_index;
+//     for (attr_index = 0; attr_index < value_num; attr_index++) {
+//         if (0 == strcmp(table_meta_.field(attr_index + normal_field_start_index)->name(), attribute_name)) {
+//             break;
+//         }
+//     }
+
+//     if (value_num <= 0 || nullptr == value ||
+//         table_meta_.field(attr_index + normal_field_start_index)->type() != value->type && NULLS != value->type) {
+//         LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
+//         return RC::INVALID_ARGUMENT;
+//     }
+
+//     std::string data = (char *)(value->data);
+//     // std::transform(data.begin(), data.end(), ::tolower);
+//     if(data=="!null"){
+//         if (table_meta_.field(attr_index + normal_field_start_index)->nullable()==false){
+//             return RC::CONSTRAINT_NOTNULL;
+//         }
+//     }
+
+//     // construct index_scanner
+//     IndexScanner *index_scanner = find_index_for_scan(&filter);
+
+//     if (index_scanner != nullptr) { // scan by index
+//         RID rid;
+//         // update each entry
+//         while (*updated_count < limit) {
+//             rc = index_scanner->next_entry(&rid);
+//             if (rc != RC::SUCCESS) {
+//                 if (RC::RECORD_EOF == rc) {  // finish updating all entries
+//                     rc = RC::SUCCESS;
+//                     break;
+//                 }
+//                 LOG_ERROR("Failed to scan table by index. rc=%d:%s", rc, strrc(rc));
+//                 break;
+//             }
+
+//             // get record
+//             rc = record_handler_->get_record(&rid, &record);
+//             if (rc != RC::SUCCESS) {
+//                 LOG_ERROR("Failed to fetch record of rid=%d:%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
+//                 break;
+//             }
+
+//             // a second time filter for check, maybe can delete the last part of this line:
+//             if ((trx == nullptr || trx->is_visible(this, &record)) && (filter.filter(record))) {
+//                 // rc = record_reader(&record, context);
+
+//                 //construct "new_record" for this entry
+//                 char *new_record_data = new char[record_size];
+
+//                 for (int i = 0; i < value_num; i++) {
+//                     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+//                     if (i == attr_index)  // assign value
+//                         memcpy(new_record_data + field->offset(), value->data, field->len());
+//                     else              // assign record->data
+//                         memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
+//                 }
+
+//                 Record new_record;
+//                 new_record.data = new_record_data;
+//                 new_record.rid = rid;
+
+//                 rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//                 rc = insert_entry_of_indexes(new_record.data, rid);
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+
+//                 // update
+//                 rc = record_handler_->update_record(&new_record);
+
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning3. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//             }
+//             (*updated_count)++;
+//         }
+//         // todo: update index?
+//         index_scanner->destroy();
+//     } else { // no index, use record file scanner
+//         RecordFileScanner scanner;
+//         rc = scanner.open_scan(*data_buffer_pool_, file_id_, &filter);
+//         if (rc != RC::SUCCESS) {
+//             LOG_ERROR("failed to open scanner. file id=%d. rc=%d:%s", file_id_, rc, strrc(rc));
+//             return rc;
+//         }
+
+//         rc = scanner.get_first_record(&record);
+//         for (; RC::SUCCESS == rc && (*updated_count) < limit; rc = scanner.get_next_record(&record)) {
+//             if (trx == nullptr || trx->is_visible(this, &record)) {
+//                 //construct "new_record" for this entry
+//                 char *new_record_data = new char[record_size];
+
+//                 for (int i = 0; i < value_num; i++) {
+//                     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+//                     if (i == attr_index)  // assign value
+//                         memcpy(new_record_data + field->offset(), value->data, field->len());
+//                     else              // assign record->data
+//                         memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
+//                 }
+
+//                 Record new_record;
+//                 new_record.data = new_record_data;
+//                 new_record.rid = record.rid;
+
+
+//                 rc = delete_entry_of_indexes(record.data, record.rid,
+//                                              false);  // if not exist this index, don't return err
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//                 rc = insert_entry_of_indexes(new_record.data, record.rid);
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//                 // update
+//                 rc = record_handler_->update_record(&new_record);
+
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//             }
+//             (*updated_count)++;
+//         }
+
+//         if (RC::RECORD_EOF == rc) {
+//             rc = RC::SUCCESS;
+//         } else {
+//             LOG_ERROR("failed to scan record. file id=%d, rc=%d:%s", file_id_, rc, strrc(rc));
+//         }
+//         scanner.close_scan();
+//     }
+//     return rc;
+// }
 
 class RecordDeleter {
 public:
