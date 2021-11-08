@@ -119,11 +119,7 @@ public:
   explicit StringValue(const char *value) : value_(value) {
   }
   bool is_null() const override {
-    if(value_[0]=='!'){
-      return true;
-    } else {
-      return false;
-    }
+    return value_[0] == '!';
   }
 
   void to_string(std::ostream &os) const override {
@@ -136,7 +132,14 @@ public:
 
   int compare(const TupleValue &other) const override {
     const StringValue &string_other = (const StringValue &)other;
-    return strcmp(value_.c_str(), string_other.value_.c_str());
+    int result = strcmp(value_.c_str(), string_other.value_.c_str());
+    if (result < 0) {
+        return -1;
+    }
+    if (result > 0) {
+        return 1;
+    }
+    return 0;
   }
 
   std::string get_value(){

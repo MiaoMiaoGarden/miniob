@@ -18,10 +18,12 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/aggregate.h"
 #include <memory>
 
+/*
 Tuple::Tuple(const Tuple &other) {
     LOG_PANIC("Copy constructor of tuple is not supported");
     exit(1);
 }
+*/
 
 Tuple::Tuple(Tuple &&other) noexcept: values_(std::move(other.values_)) {
 }
@@ -252,6 +254,39 @@ void TupleSet::add(Tuple &&tuple) {
 void TupleSet::clear() {
     tuples_.clear();
     schema_.clear();
+}
+
+RC TupleSet::sort(const Selects &selects) {
+    RC rc = RC::SUCCESS;
+    const TupleSchema &schema = this->get_schema();
+    auto compare = [&schema, &selects, &rc](const Tuple& tuple1, const Tuple& tuple2) -> bool {
+        if (rc != RC::SUCCESS) {
+            return true;
+        }
+        for (int i = 0; i < selects.orderbys_num; i++) {
+            const Orderby& orderby = selects.orderbys[i];
+            const char* table_name = orderby.attr.relation_name;
+            const char* attribute_name = orderby.attr.attribute_name;
+            if (table_name == nullptr) {
+                table_name = selects.relations[0];
+            }
+            int idx = schema.index_of_field(table_name, attribute_name);
+            if (idx == -1) {
+                rc = RC::SCHEMA_FIELD_NAME_ILLEGAL;
+                return false;
+            }
+            int result = tuple1.get(idx).compare(tuple2.get(idx));
+            if (result == -1) {
+                return orderby.asc_desc == OrderType::O_AES;
+            }
+            if (result == 1) {
+                return orderby.asc_desc == OrderType::O_DESC;
+            }
+        }
+        return true;
+    };
+    std::sort(this->tuples_.begin(), this->tuples_.end(), compare);
+    return rc;
 }
 
 void print_tuples(std::ostream &os, const std::vector<Tuple> &tuples) {

@@ -99,10 +99,9 @@ void value_destroy(Value *value) {
     value->data = nullptr;
 }
 
-void orderby_init_append(Selects *select, int asc_desc, RelAttr *attr, Orderby *orderby){
-    orderby->attr = attr;
+void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby){
     orderby->asc_desc = asc_desc;
-    select->orderbys[select->nOrderbys++] = *orderby;
+    select->orderbys[select->orderbys_num++] = *orderby;
 }
 
 void condition_init(Condition *condition, CompOp comp,
@@ -123,6 +122,7 @@ void condition_init(Condition *condition, CompOp comp,
         condition->right_value = *right_value;
     }
 }
+
 void condition_destroy(Condition *condition) {
     if (condition->left_is_attr) {
         relation_attr_destroy(&condition->left_attr);

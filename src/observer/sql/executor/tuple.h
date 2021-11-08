@@ -27,7 +27,7 @@ class Tuple {
 public:
   Tuple() = default;
 
-  Tuple(const Tuple &other);
+  Tuple(const Tuple &other) = delete;
 
   ~Tuple();
 
@@ -175,6 +175,7 @@ public:
   void print(std::ostream &os) const;
   void print(std::ostream &os, bool flag) const;
   void print_with_tablename(std::ostream &os) const;
+  RC sort(const Selects &selects);
 public:
   const TupleSchema &schema() const {
     return schema_;

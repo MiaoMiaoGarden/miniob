@@ -15,7 +15,6 @@ See the Mulan PSL v2 for more details. */
 #include <memory>
 #include <string>
 #include <sstream>
-#include <cmath>
 #include <algorithm>
 #include <unordered_map>
 
@@ -233,31 +232,26 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right) {
     }
 }
 
-
-
-bool isLeapYear_(int year){
-    if ((year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0))
-    {
-        return true;
-    }
-    return false;
+bool is_leap_year(int year) {
+    return ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
 }
+
 bool is_date(int year, int mon, int day) {
-    int Maxdays[13] = { 0,31,28,31,30,31,30,31,31,30,31,30,31 };
-    if (mon < 1 || mon > 12) // 无效月
-    {
+    int Maxdays[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    if (mon < 1 || mon > 12) {
+        // 无效月
         return false;
     }
-    if (year < 1970) // 无效年（年的有效性不好界定，就认为小于0为无效）
-    {
+    if (year < 1970) {
+        // 无效年（年的有效性不好界定，就认为小于0为无效）
         return false;
     }
-    if (mon == 2 && day == 29 && isLeapYear_(year))  //闰年2月29日
-    {
+    if (mon == 2 && day == 29 && is_leap_year(year)) {
+        //闰年2月29日
         return true;
     }
-    if (day<1 || day>Maxdays[mon])// 无效日
-    {
+    if (day<1 || day>Maxdays[mon]) {
+        // 无效日
         return false;
     }
     return true; //日期有效，返回真
@@ -295,7 +289,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         tables_map[table_name1] = table;
     }
 
-    for(int i = 0; i < selects.condition_num; i++) {
+    int condition_num = selects.condition_num;
+    for(int i = 0; i < condition_num; i++) {
         if(!selects.conditions[i].left_is_attr &&
            selects.conditions[i].left_value.type == DATES &&
            !is_valid_date(*((int *)selects.conditions[i].left_value.data))) {
@@ -317,7 +312,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
     // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
     std::vector<SelectExeNode *> select_nodes;
-    // char response[256];
     for (size_t i = 0; i < selects.relation_num; i++) {
         std::string table_name(selects.relations[i]);
         SelectExeNode *select_node = new SelectExeNode;
@@ -358,7 +352,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     TupleSchema output_scheam;
     rc = gen_output_scheam(tables_map, selects, output_scheam);
-    output_scheam.set_groupby(selects.groupby_attr,selects.relations[0]);
     if (rc != RC::SUCCESS) {
         snprintf(response, sizeof(response), "FAILURE\n");
         session_event->set_response(response);
@@ -368,6 +361,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         end_trx_if_need(session, trx, false);
         return rc;
     }
+    output_scheam.set_groupby(selects.groupby_attr, selects.relations[0]);
 
     // 这里需要将多个tuple_set合成一个tuple_set, 但是这不是最后输出的那个tuple_set
     TupleSet tuple_set;
@@ -386,6 +380,19 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     } else {
         // 当前只查询一张表，直接返回结果即可
         tuple_set = std::move(tuple_sets.front());
+    }
+
+    if (selects.orderbys_num > 0) {
+        RC rc = tuple_set.sort(selects);
+        if (rc != RC::SUCCESS) {
+            snprintf(response, sizeof(response), "FAILURE\n");
+            session_event->set_response(response);
+            for (SelectExeNode *&select_node: select_nodes) {
+                delete select_node;
+            }
+            end_trx_if_need(session, trx, false);
+            return rc;
+        }
     }
 
     TupleSet tuple_set1; //最后输出的tuple_set
@@ -414,26 +421,27 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map, 
                 const Selects &selects, TupleSchema &output_scheam){
 
-    for (int i = 0; i <selects.attr_num; i++) {
+    int attr_num = selects.attr_num;
+    for (int i = 0; i < attr_num; i++) {
         const RelAttr &attr = selects.attributes[i];
         if (attr.aggre_type != AggreType::NON) {
             // 聚合属性
-            // char attr_name[100];
-            // parse_attr(attr.attribute_name, attr.aggre_type, attr_name);
             const char *table_name = attr.relation_name != nullptr ? attr.relation_name : selects.relations[0];
             std::string table_name1(table_name);
             AttrType attr_type;
-
             Table *table = tables_map[table_name1];
+
             bool is_star_num_float = is_valid_aggre(attr.attribute_name);
             if(!is_star_num_float){  // attribute 
                 attr_type = table->table_meta().field(attr.attribute_name)->type();
-            } else if (attr.aggre_type == AggreType::COUNT) { // count(1)
-                attr_type = table->table_meta().field(0)->type();
+            } else if (attr.aggre_type == AggreType::COUNT) { 
+                // count(1), 直接把他指定为INT,是不是也行？
+                // attr_type = table->table_meta().field(0)->type();
+                attr_type = AttrType::INTS;
             } else { // min(1)
                 return RC::GENERIC_ERROR;
             }
-            output_scheam.add(attr_type, selects.relations[0], attr.attribute_name, attr.aggre_type);
+            output_scheam.add(attr_type, table_name, attr.attribute_name, attr.aggre_type);
         } else {
             // 表属性
             if (attr.relation_name == nullptr) {
@@ -497,29 +505,83 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
 }
 
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
-
 RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
                 const char *table_name, SelectExeNode &select_node) {
     // 列出跟这张表关联的Attr
     TupleSchema schema;
+    /*
+    int flag_all_attr = false;
 
+    // 首先把select.attribute里面属性添加到schema
+    for (int i = selects.attr_num - 1; i >= 0; i--) {
+        const RelAttr &attr = selects.attributes[i];
+        if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
+            if (0 == strcmp("*", attr.attribute_name) || is_valid_aggre(attr.attribute_name) ) {
+                TupleSchema::from_table(table, schema);
+                flag_all_attr = true;
+                break;
+            } else {
+                RC rc = RC::SUCCESS;
+                rc = schema_add_field(table, attr.attribute_name, schema);
+            }
+        }
+    }
+
+    // 在condition里面相关的属性添加到schema, 例如：
+    // select t1.age, t2.name from t1, t2 where t1.id = t2.id;
+    // 这时候t1.id 就需要被加入schema，方便后面笛卡尔积过滤
+    //
+    std::vector<DefaultConditionFilter *> condition_filters;
+    for (size_t i = 0; i < selects.condition_num; i++) {
+        const Condition &condition = selects.conditions[i];
+        if ((condition.left_is_attr == 0 && condition.right_is_attr == 0) || // 两边都是值
+            (condition.left_is_attr == 1 && condition.right_is_attr == 0 &&
+             match_table(selects, condition.left_attr.relation_name, table_name)) ||  // 左边是属性右边是值
+            (condition.left_is_attr == 0 && condition.right_is_attr == 1 &&
+             match_table(selects, condition.right_attr.relation_name, table_name)) ||  // 左边是值，右边是属性名
+            (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
+             match_table(selects, condition.left_attr.relation_name, table_name) &&
+             match_table(selects, condition.right_attr.relation_name, table_name)) // 左右都是属性名，并且表名都符合
+                ) {
+            DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
+            RC rc = condition_filter->init(*table, condition);
+            if (rc != RC::SUCCESS) {
+                delete condition_filter;
+                for (DefaultConditionFilter *&filter: condition_filters) {
+                    delete filter;
+                }
+                return rc;
+            }
+            condition_filters.push_back(condition_filter);
+        }
+        if (!flag_all_attr) {
+            if ((condition.left_is_attr == 1 && condition.right_is_attr == 1) && !flag_all_attr) {
+                if (match_table(selects, condition.left_attr.relation_name, table_name) && 
+                    !match_table(selects, condition.right_attr.relation_name, table_name)) {
+                    // 左右都是属性名，并且有一个和 table_name 相同
+                    schema_add_field(talble, condition.left_attr.attribute_name, schema);
+                }else if (!match_table(selects, condition.left_attr.relation_name, table_name) && 
+                    match_table(selects, condition.right_attr.relation_name, table_name)) {
+                    // 左右都是属性名，并且有一个和 table_name 相同
+                    schema_add_field(talble, condition.right_attr.attribute_name, schema);
+                }
+            }
+        }
+    }*/
+
+    // TODO: group by, order by
+    
 
     if (selects.relation_num > 1) {
         // select t1.age from t1, t2 where t1.id = t2.id;
         // 就目前来说，如果查询包括多张表，那需要把每张的表的相关字段(t1.age, t1.id, t2.id)都列出来, 
-
         // 方便笛卡尔积做过滤。现在是把所有字段都列了出来，这个地方后面可能需要优化。
         TupleSchema::from_table(table, schema);
     } else {
         for (int i = selects.attr_num - 1; i >= 0; i--) {
             const RelAttr &attr = selects.attributes[i];
             if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
-                /*
-                char parsed[100];
-                parse_attr(attr.attribute_name, attr.aggre_type, parsed); // if not aggre, will do nothing and return
-                */
                 if (0 == strcmp("*", attr.attribute_name) || is_valid_aggre(attr.attribute_name) ) {
-
                     // 列出这张表所有字段
                     TupleSchema::from_table(table, schema);
                     break; // 没有校验，给出* 之后，再写字段的错误
