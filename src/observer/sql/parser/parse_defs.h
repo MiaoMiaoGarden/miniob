@@ -45,20 +45,28 @@ typedef enum {
 
 //属性值类型
 typedef enum {
-    UNDEFINED, CHARS, INTS, FLOATS, DATES, NULLS  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
+    UNDEFINED,
+    CHARS,
+    INTS,
+    FLOATS,
+    DATES,
+    NULLS  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
 } AttrType;
 
+typedef enum {
+    O_AES,
+    O_DESC
+} OrderType;
 //属性值
 typedef struct _Value {
     AttrType type;  // type of value
     void *data;     // value
 } Value;
 
-typedef struct _Orderby
-{
-    RelAttr *attr;
+typedef struct _Orderby {
+    RelAttr attr;
     int asc_desc; // 0: asc, 1:desc 
-}Orderby;
+} Orderby;
 
 typedef struct _Condition {
     int left_is_attr;    // TRUE if left-hand side is an attribute
@@ -80,15 +88,17 @@ typedef struct {
     char *relations[MAX_NUM];     // relations in From clause
     size_t condition_num;          // Length of conditions in Where clause
     Condition conditions[MAX_NUM];    // conditions in Where clause
-  RelAttr *groupby_attr;
-  int nOrderbys;
-  Orderby orderbys[MAX_NUM];
+    RelAttr *groupby_attr;
+    int orderbys_num;
+    Orderby orderbys[MAX_NUM];
 } Selects;
+
 // use for multi insert
 typedef struct {
     size_t value_length;
     Value values[MAX_NUM];
 } extraValues;
+
 // struct of insert
 typedef struct {
     char *relation_name;    // Relation to insert into
@@ -214,7 +224,7 @@ void value_init_float_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);
 void value_init_null(Value *value);
-void orderby_init_append(Selects *select, int asc_desc, RelAttr *attr, Orderby *orderby);
+void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby);
 
 void value_destroy(Value *value);
 

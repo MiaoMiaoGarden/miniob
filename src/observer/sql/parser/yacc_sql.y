@@ -481,47 +481,48 @@ selectvalue:
         }
 
 aggrevalue:
-	STAR aggrevaluelist{  
+	STAR aggrevaluelist {  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | ID aggrevaluelist{
+    | ID aggrevaluelist {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-  	| ID DOT ID aggrevaluelist{
+  	| ID DOT ID aggrevaluelist {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| NUMBER aggrevaluelist{
+	| NUMBER aggrevaluelist {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | FLOAT aggrevaluelist{
+    | FLOAT aggrevaluelist {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);     
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
+
 aggrevaluelist:
 	| COMMA STAR aggrevaluelist {
 			CONTEXT->ssql->flag = SCF_FAILURE;
-	}
-		| COMMA  ID aggrevaluelist {
+	    }
+	| COMMA  ID aggrevaluelist {
 			CONTEXT->ssql->flag = SCF_FAILURE;
-	}
-		| COMMA ID DOT ID aggrevaluelist {
+	    }
+	| COMMA ID DOT ID aggrevaluelist {
 			CONTEXT->ssql->flag = SCF_FAILURE;
-	}
-		| COMMA NUMBER aggrevaluelist {
+	    }
+	| COMMA NUMBER aggrevaluelist {
 			CONTEXT->ssql->flag = SCF_FAILURE;
-	}
-		| COMMA FLOAT aggrevaluelist {
+	    }
+	| COMMA FLOAT aggrevaluelist {
 			CONTEXT->ssql->flag = SCF_FAILURE;
-	}
+	    }
 
 selectvalue_commaed:
 	ID  {
@@ -542,7 +543,7 @@ selectvalue_commaed:
 
 attr_list:
     /* empty */
-	| COMMA aggretype LBRACE aggrevalue RBRACE attr_list{
+	| COMMA aggretype LBRACE aggrevalue RBRACE attr_list {
 			for (int i = 0; i<CONTEXT->ssql->sstr.selection.attr_num; i++){
 				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
 			}
@@ -738,22 +739,20 @@ orderby:
     ;
 orderby_attr_list:
     /* empty */
-    | orderby_attr orderby_attr_list {
+    | COMMA orderby_attr orderby_attr_list {
 				// 
 			}
     ;
 orderby_attr:
 	ID AscDesc {
-		RelAttr attr;
-		relation_attr_init(&attr, NULL, $1);
 		Orderby orderby;
-		orderby_init_append(&(CONTEXT->ssql->sstr.selection), CONTEXT->asc_desc, &attr, &orderby);
+		relation_attr_init(&orderby.attr, NULL, $1);
+		orderby_init_append(&(CONTEXT->ssql->sstr.selection), CONTEXT->asc_desc, &orderby);
 	}
 	| ID DOT ID AscDesc {
-		RelAttr attr;
-		relation_attr_init(&attr, $1, $3);
 		Orderby orderby;
-		orderby_init_append(&(CONTEXT->ssql->sstr.selection), CONTEXT->asc_desc, &attr, &orderby);
+		relation_attr_init(&orderby.attr, $1, $3);
+		orderby_init_append(&(CONTEXT->ssql->sstr.selection), CONTEXT->asc_desc, &orderby);
 	}
 	
 	
