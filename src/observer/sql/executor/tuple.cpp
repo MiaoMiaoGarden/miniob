@@ -382,12 +382,13 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
 
     // need to aggregate
     //   init groupby
-    const RelAttr *groupby_attr = input_schema.get_groupby();
+    const RelAttr groupby_attr = input_schema.get_groupby();
+    const int groupby_num = input_schema.get_groupby_num();
     const char* group_relation_name = input_schema.group_relation_name();
     int groupby_attr_index = -1;
     AttrType groupattr_type = AttrType::UNDEFINED;
-    if(groupby_attr!=nullptr){
-       groupby_attr_index = output_schema.index_of_field(group_relation_name, groupby_attr->attribute_name);
+    if(groupby_num !=0){
+       groupby_attr_index = output_schema.index_of_field(group_relation_name, groupby_attr.attribute_name);
        groupattr_type = output_schema.field(groupby_attr_index).type();
     }
     GroupHandler *group_handler = new GroupHandler();

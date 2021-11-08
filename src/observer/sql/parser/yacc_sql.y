@@ -722,12 +722,14 @@ groupby:
 	|GROUP BY ID{
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,$3);
-		CONTEXT->ssql->sstr.selection.groupby_attr = &attr;
+		CONTEXT->ssql->sstr.selection.groupby_attr = attr;
+		CONTEXT->ssql->sstr.selection.groupby_num = 1;
 	}
 	| GROUP BY ID DOT ID {
 		RelAttr attr;
 		relation_attr_init(&attr, $3,$5);
-		CONTEXT->ssql->sstr.selection.groupby_attr = &attr;
+		CONTEXT->ssql->sstr.selection.groupby_attr = attr;
+		CONTEXT->ssql->sstr.selection.groupby_num = 1;
 	}
 
 

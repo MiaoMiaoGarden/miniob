@@ -88,7 +88,8 @@ typedef struct {
     char *relations[MAX_NUM];     // relations in From clause
     size_t condition_num;          // Length of conditions in Where clause
     Condition conditions[MAX_NUM];    // conditions in Where clause
-    RelAttr *groupby_attr;
+    size_t groupby_num;
+    RelAttr groupby_attr;
     int orderbys_num;
     Orderby orderbys[MAX_NUM];
 } Selects;
