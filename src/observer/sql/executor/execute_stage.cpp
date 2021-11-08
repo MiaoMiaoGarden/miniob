@@ -683,12 +683,46 @@ RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
 
             const TupleValue &tuple_value1 = tuples_map[left_table]->get(i);
             const TupleValue &tuple_value2 = tuples_map[right_table]->get(j);
-            int result = tuple_value1.compare(tuple_value2);
-            if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
-                                 condition->comp == CompOp::LESS_EQUAL)) ||
-                (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
-                (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
-                continue;
+
+            bool left_is_null = tuple_value1.is_null();
+            bool right_is_null = tuple_value2.is_null();
+
+            if (left_is_null && right_is_null) {  // null comop null
+                if (condition->comp == IS_COMPOP) {   // is
+                    continue;
+                } else if (condition->comp == IS_NOT_COMPOP) {   // is not
+                    return RC::SUCCESS;
+                } else {     // >=、noop
+                    return RC::SUCCESS;
+                }
+            } else if (left_is_null) {  // null comop (value/id,anything not null)
+                if (condition->comp <= 7) {  // >=、noop
+                   return RC::SUCCESS;
+                } else if (condition->comp == IS_COMPOP) { // is
+                    return RC::SUCCESS;
+                } else if (condition->comp == IS_NOT_COMPOP) {  // is not
+                    continue;
+                } else {
+                    LOG_PANIC("Never should print this.");
+                }
+            } else if (right_is_null) {   // (value/id,anything not null) compop null
+                if (condition->comp <= 7) {  // >=、noop
+                    return RC::SUCCESS;
+                } else if (condition->comp == IS_COMPOP) {  // is
+                    return RC::SUCCESS;
+                } else if (condition->comp == IS_NOT_COMPOP) { // isnot
+                    continue;
+                } else {
+                    LOG_PANIC("Never should print this.");
+                }
+            } else {  // notnull comop notnull
+                int result = tuple_value1.compare(tuple_value2);
+                if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
+                                    condition->comp == CompOp::LESS_EQUAL)) ||
+                    (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
+                    (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
+                    continue;
+                }
             }
             return RC::SUCCESS;
         }
