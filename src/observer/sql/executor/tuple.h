@@ -123,6 +123,7 @@ public:
   void set_groupby(RelAttr groupby, int groupby_num, char* group_relation_name) {
     if(groupby_num==0) return;
     groupby_ = groupby;
+    groupby_num_ = groupby_num;
     if(groupby.relation_name==nullptr){
         group_relation_name_ = group_relation_name;
     } else {
