@@ -80,9 +80,11 @@ RC AggregateAvgValue::add(const std::shared_ptr<TupleValue> &tuple_value, AttrTy
     if (type == FLOATS) {
         FloatValue *float_value = dynamic_cast<FloatValue *>(tuple_value.get());
         sum += float_value->get_value();
+        all_null_ = false;
     } else {
         IntValue *int_value = dynamic_cast<IntValue *>(tuple_value.get());
         sum += int_value->get_value();
+        all_null_ = false;
     }
     count += 1;
     return rc;
@@ -111,6 +113,9 @@ std::shared_ptr<TupleValue> AggregateMaxValue::value() {
 }
 
 std::shared_ptr<TupleValue> AggregateAvgValue::value() {
+    if(all_null_){
+        return nullptr;
+    }
     float avg = round(100*(float)sum/count)/100.0;
     std::shared_ptr<TupleValue> value = std::make_shared<FloatValue>(avg);
     return value;

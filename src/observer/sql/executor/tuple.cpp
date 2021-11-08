@@ -297,7 +297,11 @@ void print_tuples(std::ostream &os, const std::vector<Tuple> &tuples) {
             (*iter)->to_string(os);
             os << " | ";
         }
-        values.back()->to_string(os);
+        if(values.back().get() == nullptr){
+            os << "null";
+        } else {
+            values.back()->to_string(os);
+        }
         os << std::endl;
     }
 }
@@ -431,7 +435,9 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
         for (auto& tuple_field : tuple_fields) {
             const std::shared_ptr<TupleValue> &value_ptr = agg_exec_node.get_value(index+group_id*index_num);
                 // 处理精度问题
-            if (is_float_output(tuple_field.type(), tuple_field.aggre_type)) {
+            if (value_ptr == nullptr){
+                new_tuple.add(nullptr);
+            } else if (is_float_output(tuple_field.type(), tuple_field.aggre_type)) {
                     FloatValue *fvalue_ptr = dynamic_cast<FloatValue *>(value_ptr.get());
                     float value = round(100 * (fvalue_ptr->get_value())) / 100.0;
                     new_tuple.add(value);

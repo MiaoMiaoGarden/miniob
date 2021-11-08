@@ -56,7 +56,7 @@ private:
 
 class AggregateAvgValue : public AggregateValue {
 public:
-    AggregateAvgValue(): sum(0), count(0) {
+    AggregateAvgValue(): sum(0), count(0), all_null_(true) {
     }
     ~AggregateAvgValue() = default;
     RC add(const std::shared_ptr<TupleValue> &tuple_value, AttrType type, bool count_null) override;
@@ -64,6 +64,7 @@ public:
 private:
     float sum;
     int count;
+    bool all_null_;
 };
 
 class AggregateCountValue : public AggregateValue {
