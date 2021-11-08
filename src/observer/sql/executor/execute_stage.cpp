@@ -572,7 +572,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
     // TODO: group by, order by
     
 
-    if (selects.relation_num > 1) {
+    if (selects.relation_num > 1 || selects.orderbys_num > 0) {
         // select t1.age from t1, t2 where t1.id = t2.id;
         // 就目前来说，如果查询包括多张表，那需要把每张的表的相关字段(t1.age, t1.id, t2.id)都列出来, 
         // 方便笛卡尔积做过滤。现在是把所有字段都列了出来，这个地方后面可能需要优化。
