@@ -361,7 +361,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         end_trx_if_need(session, trx, false);
         return rc;
     }
-    output_scheam.set_groupby(selects.groupby_attr, selects.relations[0]);
+    output_scheam.set_groupby(selects.groupby_attr, selects.groupby_num, selects.relations[0]);
 
     // 这里需要将多个tuple_set合成一个tuple_set, 但是这不是最后输出的那个tuple_set
     TupleSet tuple_set;
@@ -599,8 +599,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
             }
         }
         RC rc = RC::SUCCESS;
-        if(selects.groupby_attr!=nullptr){
-            rc = schema_add_field(table, selects.groupby_attr->attribute_name, schema);
+        if(selects.groupby_num!=0){
+            rc = schema_add_field(table, selects.groupby_attr.attribute_name, schema);
         }
         if (rc != RC::SUCCESS) {
             return rc;
