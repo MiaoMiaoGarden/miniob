@@ -738,7 +738,7 @@ orderby:
     ;
 orderby_attr_list:
     /* empty */
-    | orderby_attr orderby_attr_list {
+    | COMMA orderby_attr orderby_attr_list {
 				// 
 			}
     ;
