@@ -196,15 +196,19 @@ RC DefaultHandler::delete_record(Trx *trx, const char *dbname, const char *relat
     return table->delete_record(trx, &condition_filter, deleted_count);
 }
 
-RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relation_name, const char *attribute_name,
-                                 const Value *value,
-                                 int condition_num, const Condition *conditions, int *updated_count) {
-    Table *table = find_table(dbname, relation_name);
-    if (nullptr == table) {
-        return RC::SCHEMA_TABLE_NOT_EXIST;
-    }
 
-    return table->update_record(trx, attribute_name, value, condition_num, conditions, updated_count);
+RC DefaultHandler::update_record(Trx *trx, const char *dbname, const char *relation_name, const char *attribute_name, const Value *value,
+                          int condition_num, const Condition *conditions, int *updated_count) {
+  Table *table = find_table(dbname, relation_name);
+  if (nullptr == table) {
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  CompositeConditionFilter condition_filter;
+  RC rc = condition_filter.init(*table, conditions, condition_num);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  return table->update_record(trx, &condition_filter, attribute_name, value, updated_count);
 }
 
 Db *DefaultHandler::find_db(const char *dbname) const {
