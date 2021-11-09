@@ -27,6 +27,7 @@ public:
   virtual bool is_null() const = 0;
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
+  virtual std::string get_string_value() const = 0;
 private:
 };
 
@@ -66,6 +67,10 @@ public:
 
   int get_value(){
     return value_;
+  }
+  
+  std::string get_string_value() const override {
+    return std::to_string(value_);
   }
 
 private:
@@ -108,6 +113,10 @@ public:
   float get_value(){
     return value_;
   }
+
+  std::string get_string_value() const override {
+    return std::to_string(value_);
+  }
 private:
   float value_;
 };
@@ -145,6 +154,11 @@ public:
   std::string get_value(){
     return value_;
   }
+
+  std::string get_string_value() const override {
+    return value_;
+  }
+
 private:
   std::string value_;
 };
@@ -188,6 +202,10 @@ public:
 
     int get_value(){
       return value_;
+    }
+
+    std::string get_string_value() const override {
+      return std::to_string(value_);
     }
 
 private:

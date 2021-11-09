@@ -599,8 +599,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
             }
         }
         RC rc = RC::SUCCESS;
-        if(selects.groupby_num!=0){
-            rc = schema_add_field(table, selects.groupby_attr.attribute_name, schema);
+        for(int i = 0; i<selects.groupby_num; i++){
+            rc = schema_add_field(table, selects.groupby_attr[i].attribute_name, schema);
         }
         if (rc != RC::SUCCESS) {
             return rc;

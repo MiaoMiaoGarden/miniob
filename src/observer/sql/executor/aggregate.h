@@ -128,55 +128,31 @@ private:
 class GroupHandler {
 public:
     GroupHandler() = default;
-    ~GroupHandler() {
-    }
-    int get_group(TupleValue *tuplevalue, AttrType type){
-        if(type==AttrType::CHARS){
-            std::string value = (static_cast<StringValue*>(tuplevalue))->get_value();
-            if(string_group_map.find(value)==string_group_map.end()){
-                string_group_map[value] = string_group_map.size();
-            }
-            return string_group_map[value];
-        } else if (type==AttrType::FLOATS) {
-            float value = (static_cast<FloatValue*>(tuplevalue))->get_value();
-            if(float_group_map.find(value)==float_group_map.end()){
-                float_group_map[value] = float_group_map.size();
-            }
-            return float_group_map[value];
-        } else if (type == AttrType::INTS) {
-            int value = (static_cast<IntValue*>(tuplevalue))->get_value();
-            if(int_group_map.find(value)==int_group_map.end()){
-                int_group_map[value] = int_group_map.size();
-            }
-            return int_group_map[value];
-        } else if (type == AttrType::DATES) {
-            int value = (static_cast<DateValue*>(tuplevalue))->get_value();
-            if(int_group_map.find(value)==int_group_map.end()){
-                int_group_map[value] = int_group_map.size();
-            }
-            return int_group_map[value];
-        } else {
-            return -1;
+    ~GroupHandler() = default;
+    int get_group(const Tuple &tuple, const std::vector<RelAttr> &groupby_attr, const TupleSchema &output_schema){
+        // Tuple *new_tupe = std::move(tuple);
+        int hashed = 0;
+        for(auto &groupby : groupby_attr){
+            int index = output_schema.index_of_field(groupby.relation_name, groupby.attribute_name);
+            // const TupleValue & tuple_value = tuple.get(index);
+            // TupleValue *tuple_value_addr = const_cast<TupleValue*>(&tuple_value);
+
+            // std::string value = (dynamic_cast<StringValue*>(tuple_value_addr))->get_string_value();
+            std::string value = tuple.get(index).get_string_value();
+            hashed += hash_fn(value);
         }
+        if(string_group_map.find(hashed)==string_group_map.end()){
+            string_group_map[hashed] = string_group_map.size();
+        }
+        return string_group_map[hashed];
     }
 
-    size_t get_group_num(AttrType type){
-        if(type==AttrType::CHARS){
-            return string_group_map.size();
-        } else if(type==AttrType::FLOATS){
-            return float_group_map.size();
-        } else if(type==AttrType::INTS) {
-            return int_group_map.size();
-        } else if(type==AttrType::DATES) {
-            return int_group_map.size();
-        } else {
-            return -1;
-        }
+    size_t get_group_num(){
+       return string_group_map.size();
     }
 private:
-    std::unordered_map<std::string, int> string_group_map;
-    std::unordered_map<int, int> int_group_map;
-    std::unordered_map<float, int> float_group_map;
+    std::unordered_map<int, int> string_group_map;
+    std::hash<std::string> hash_fn;
 protected:
 };
 

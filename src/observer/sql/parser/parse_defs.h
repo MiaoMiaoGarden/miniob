@@ -89,8 +89,8 @@ typedef struct {
     size_t condition_num;          // Length of conditions in Where clause
     Condition conditions[MAX_NUM];    // conditions in Where clause
     size_t groupby_num;
-    RelAttr groupby_attr;
-    int orderbys_num;
+    RelAttr groupby_attr[MAX_NUM];
+    size_t orderbys_num;
     Orderby orderbys[MAX_NUM];
 } Selects;
 
