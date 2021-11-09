@@ -2251,7 +2251,7 @@ yyreduce:
                                   {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,(yyvsp[-1].string));
-        CONTEXT->ssql->sstr.selection.groupby_attr = attr;
+        CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
 	}
 #line 2257 "yacc_sql.tab.c"
     break;

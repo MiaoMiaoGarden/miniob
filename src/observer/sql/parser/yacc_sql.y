@@ -744,7 +744,7 @@ groupby:
 	|GROUP BY ID groupby_list {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,$3);
-        CONTEXT->ssql->sstr.selection.groupby_attr = attr;
+        CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
 	}
 	| GROUP BY ID DOT ID groupby_list{
 		RelAttr attr;
