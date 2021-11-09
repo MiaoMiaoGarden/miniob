@@ -741,12 +741,12 @@ condition:
     ;
 groupby:
 	// empty
-	|GROUP BY ID groupby_list{
+	|GROUP BY ID {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,$3);
-		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+    CONTEXT->ssql->sstr.selection.groupby_attr = attr;
 	}
-	| GROUP BY ID DOT ID groupby_list{
+	| GROUP BY ID DOT ID {
 		RelAttr attr;
 		relation_attr_init(&attr, $3,$5);
 		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;

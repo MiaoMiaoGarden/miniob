@@ -136,28 +136,25 @@ void DefaultStorageStage::cleanup() {
 }
 
 bool isLeapYear(int year) {
-    if ((year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0)) {
-        return true;
-    }
-    return false;
+    return ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
 }
 
 bool isDate(int year, int mon, int day) {
     int Maxdays[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    if (mon < 1 || mon > 12) // 无效月
-    {
+    if (mon < 1 || mon > 12) {
+        // 无效月
         return false;
     }
-    if (year < 1970) // 无效年（年的有效性不好界定，就认为小于0为无效）
-    {
+    if (year < 1970) {
+        // 无效年（年的有效性不好界定，就认为小于0为无效）
         return false;
     }
-    if (mon == 2 && day == 29 && isLeapYear(year))  //闰年2月29日
-    {
+    if (mon == 2 && day == 29 && isLeapYear(year)) {
+        //闰年2月29日
         return true;
     }
-    if (day < 1 || day > Maxdays[mon])// 无效日
-    {
+    if (day < 1 || day > Maxdays[mon]) {
+        // 无效日
         return false;
     }
     return true; //日期有效，返回真
