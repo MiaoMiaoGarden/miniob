@@ -43,6 +43,8 @@ QUOTE            [\'\"]
 ";"                 	 				           RETURN_TOKEN(SEMICOLON);
 {DOT}                 					         RETURN_TOKEN(DOT);
 "*"                   					         RETURN_TOKEN(STAR);
+[Ii][Nn][Nn][Ee][Rr]							 RETURN_TOKEN(INNER);
+[Jj][Oo][Ii][Nn]                                 RETURN_TOKEN(JOIN);
 [Cc][Oo][Uu][Nn][Tt]                             RETURN_TOKEN(COU);
 [Mm][Aa][Xx]                                     RETURN_TOKEN(MA);
 [Mm][Ii][Nn]                                     RETURN_TOKEN(MI);
