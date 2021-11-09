@@ -741,16 +741,17 @@ condition:
     ;
 groupby:
 	// empty
-	|GROUP BY ID {
+	|GROUP BY ID groupby_list {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,$3);
-    CONTEXT->ssql->sstr.selection.groupby_attr = attr;
+        CONTEXT->ssql->sstr.selection.groupby_attr = attr;
 	}
-	| GROUP BY ID DOT ID {
+	| GROUP BY ID DOT ID groupby_list{
 		RelAttr attr;
 		relation_attr_init(&attr, $3,$5);
 		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
 	}
+	;
 
 groupby_list:
 	// empty
@@ -764,6 +765,7 @@ groupby_list:
 		relation_attr_init(&attr, $2,$4);
 		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
 	}
+	;
 
 orderby:
     /* empty */ 
