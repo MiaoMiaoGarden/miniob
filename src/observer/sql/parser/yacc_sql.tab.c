@@ -671,10 +671,10 @@ static const yytype_int16 yyrline[] =
      491,   496,   503,   508,   513,   518,   523,   529,   530,   533,
      536,   539,   542,   547,   552,   557,   563,   565,   570,   575,
      577,   580,   584,   586,   590,   592,   597,   618,   638,   658,
-     680,   701,   722,   742,   744,   749,   755,   757,   762,   768,
-     770,   774,   776,   781,   786,   795,   798,   801,   806,   807,
-     808,   809,   810,   811,   812,   813,   817,   820,   823,   826,
-     832
+     680,   701,   722,   742,   744,   749,   756,   758,   763,   770,
+     772,   776,   778,   783,   788,   797,   800,   803,   808,   809,
+     810,   811,   812,   813,   814,   815,   819,   822,   825,   828,
+     834
 };
 #endif
 
@@ -2248,10 +2248,10 @@ yyreduce:
 
   case 104: /* groupby: GROUP BY ID groupby_list  */
 #line 744 "yacc_sql.y"
-                                 {
+                                  {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,(yyvsp[-1].string));
-		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+        CONTEXT->ssql->sstr.selection.groupby_attr = attr;
 	}
 #line 2257 "yacc_sql.tab.c"
     break;
@@ -2267,7 +2267,7 @@ yyreduce:
     break;
 
   case 107: /* groupby_list: COMMA ID groupby_list  */
-#line 757 "yacc_sql.y"
+#line 758 "yacc_sql.y"
                               {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,(yyvsp[-1].string));
@@ -2277,7 +2277,7 @@ yyreduce:
     break;
 
   case 108: /* groupby_list: COMMA ID DOT ID groupby_list  */
-#line 762 "yacc_sql.y"
+#line 763 "yacc_sql.y"
                                      {
 		RelAttr attr;
 		relation_attr_init(&attr, (yyvsp[-3].string),(yyvsp[-1].string));
@@ -2287,7 +2287,7 @@ yyreduce:
     break;
 
   case 110: /* orderby: ORDER BY orderby_attr orderby_attr_list  */
-#line 770 "yacc_sql.y"
+#line 772 "yacc_sql.y"
                                               {	
 				//
 			}
@@ -2295,7 +2295,7 @@ yyreduce:
     break;
 
   case 112: /* orderby_attr_list: COMMA orderby_attr orderby_attr_list  */
-#line 776 "yacc_sql.y"
+#line 778 "yacc_sql.y"
                                            {
 				// 
 			}
@@ -2303,7 +2303,7 @@ yyreduce:
     break;
 
   case 113: /* orderby_attr: ID AscDesc  */
-#line 781 "yacc_sql.y"
+#line 783 "yacc_sql.y"
                    {
 		Orderby orderby;
 		relation_attr_init(&orderby.attr, NULL, (yyvsp[-1].string));
@@ -2313,7 +2313,7 @@ yyreduce:
     break;
 
   case 114: /* orderby_attr: ID DOT ID AscDesc  */
-#line 786 "yacc_sql.y"
+#line 788 "yacc_sql.y"
                             {
 		Orderby orderby;
 		relation_attr_init(&orderby.attr, (yyvsp[-3].string), (yyvsp[-1].string));
@@ -2323,7 +2323,7 @@ yyreduce:
     break;
 
   case 115: /* AscDesc: %empty  */
-#line 795 "yacc_sql.y"
+#line 797 "yacc_sql.y"
         {
 		CONTEXT->asc_desc = 0;
 	}
@@ -2331,7 +2331,7 @@ yyreduce:
     break;
 
   case 116: /* AscDesc: ASC  */
-#line 798 "yacc_sql.y"
+#line 800 "yacc_sql.y"
               {
 		CONTEXT->asc_desc = 0;
 	}
@@ -2339,7 +2339,7 @@ yyreduce:
     break;
 
   case 117: /* AscDesc: DESC  */
-#line 801 "yacc_sql.y"
+#line 803 "yacc_sql.y"
                {
 		CONTEXT->asc_desc = 1;
 	}
@@ -2347,55 +2347,55 @@ yyreduce:
     break;
 
   case 118: /* comOp: EQ  */
-#line 806 "yacc_sql.y"
+#line 808 "yacc_sql.y"
              { CONTEXT->comp = EQUAL_TO; }
 #line 2353 "yacc_sql.tab.c"
     break;
 
   case 119: /* comOp: LT  */
-#line 807 "yacc_sql.y"
+#line 809 "yacc_sql.y"
          { CONTEXT->comp = LESS_THAN; }
 #line 2359 "yacc_sql.tab.c"
     break;
 
   case 120: /* comOp: GT  */
-#line 808 "yacc_sql.y"
+#line 810 "yacc_sql.y"
          { CONTEXT->comp = GREAT_THAN; }
 #line 2365 "yacc_sql.tab.c"
     break;
 
   case 121: /* comOp: LE  */
-#line 809 "yacc_sql.y"
+#line 811 "yacc_sql.y"
          { CONTEXT->comp = LESS_EQUAL; }
 #line 2371 "yacc_sql.tab.c"
     break;
 
   case 122: /* comOp: GE  */
-#line 810 "yacc_sql.y"
+#line 812 "yacc_sql.y"
          { CONTEXT->comp = GREAT_EQUAL; }
 #line 2377 "yacc_sql.tab.c"
     break;
 
   case 123: /* comOp: NE  */
-#line 811 "yacc_sql.y"
+#line 813 "yacc_sql.y"
          { CONTEXT->comp = NOT_EQUAL; }
 #line 2383 "yacc_sql.tab.c"
     break;
 
   case 124: /* comOp: IS  */
-#line 812 "yacc_sql.y"
+#line 814 "yacc_sql.y"
              {CONTEXT->comp = IS_COMPOP; }
 #line 2389 "yacc_sql.tab.c"
     break;
 
   case 125: /* comOp: ISNOT  */
-#line 813 "yacc_sql.y"
+#line 815 "yacc_sql.y"
                 {CONTEXT->comp = IS_NOT_COMPOP; }
 #line 2395 "yacc_sql.tab.c"
     break;
 
   case 126: /* aggretype: COU  */
-#line 817 "yacc_sql.y"
+#line 819 "yacc_sql.y"
             {
 		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = COUNT;
 	}
@@ -2403,7 +2403,7 @@ yyreduce:
     break;
 
   case 127: /* aggretype: MI  */
-#line 820 "yacc_sql.y"
+#line 822 "yacc_sql.y"
              {
 		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = MIN;
 	}
@@ -2411,7 +2411,7 @@ yyreduce:
     break;
 
   case 128: /* aggretype: MA  */
-#line 823 "yacc_sql.y"
+#line 825 "yacc_sql.y"
              {
 		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = MAX;
 	}
@@ -2419,7 +2419,7 @@ yyreduce:
     break;
 
   case 129: /* aggretype: AV  */
-#line 826 "yacc_sql.y"
+#line 828 "yacc_sql.y"
              {
 		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = AVG;
 	}
@@ -2427,7 +2427,7 @@ yyreduce:
     break;
 
   case 130: /* load_data: LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON  */
-#line 833 "yacc_sql.y"
+#line 835 "yacc_sql.y"
                 {
 		  CONTEXT->ssql->flag = SCF_LOAD_DATA;
 			load_data_init(&CONTEXT->ssql->sstr.load_data, (yyvsp[-1].string), (yyvsp[-4].string));
@@ -2630,7 +2630,7 @@ yyreturn:
   return yyresult;
 }
 
-#line 838 "yacc_sql.y"
+#line 840 "yacc_sql.y"
 
 //_____________________________________________________________________
 extern void scan_string(const char *str, yyscan_t scanner);
