@@ -888,28 +888,16 @@ condition:
     ;
 groupby:
 	// empty
-	|GROUP BY ID groupby_list{
+	|GROUP BY ID {
 		RelAttr attr;
 		relation_attr_init(&attr, NULL,$3);
-		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+        CONTEXT->ssql->sstr.selection.groupby_attr = attr;
+        CONTEXT->ssql->sstr.selection.groupby_num = 1;
 	}
-	| GROUP BY ID DOT ID groupby_list{
+	| GROUP BY ID DOT ID {
 		RelAttr attr;
 		relation_attr_init(&attr, $3,$5);
-		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
-	}
-
-groupby_list:
-	// empty
-	|COMMA GROUP BY ID groupby_list{
-		RelAttr attr;
-		relation_attr_init(&attr, NULL,$4);
-		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
-	}
-	|COMMA GROUP BY ID DOT ID groupby_list{
-		RelAttr attr;
-		relation_attr_init(&attr, $4,$6);
-		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+        CONTEXT->ssql->sstr.selection.groupby_num = 1;
 	}
 
 orderby:
