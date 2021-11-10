@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include <sstream>
 #include <algorithm>
 #include <unordered_map>
+#include <vector>
 
 #include "execute_stage.h"
 
@@ -39,22 +40,32 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
-RC create_selection_executor(Trx *trx, const Selects &selects, Table *table, 
+static RC create_selection_executor(Trx *trx, const Selects &selects, Table *table, 
                     const char *table_name, SelectExeNode &select_node);
 
-static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema);
 
-RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
+static RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
                     const std::vector<SelectExeNode*> &select_nodes,
                     TupleSet &tuple_set);
 
-
-RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
-                    std::vector<const Condition *> conditions,
+static RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
+                    std::vector<std::vector<const Condition *>> &conditions,
                     TupleSet &tuple_set, 
                     std::unordered_map<std::string, const Tuple*> &tuples_map,
                     std::unordered_map<std::string, const TupleSchema*> &schemas_map);
 
+static bool do_filter(std::vector<const Condition *> &conditions, 
+                    std::unordered_map<std::string, const Tuple*> &tuples_map,
+                    std::unordered_map<std::string, const TupleSchema*> &schemas_map);
+
+static void gen_conditions_group(std::list<const Condition *> &conditions,
+                            std::list<const Condition *> &match_conditions,
+                            std::vector<std::vector<const Condition*>> &conditions_group,
+                            std::vector<TupleSet> &tuple_sets, 
+                            int index);
+
+
+static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema);
 //! Constructor
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
@@ -647,8 +658,9 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
         schemas_map[table_name] = &tuple_set1.get_schema();
         scheam.append(tuple_set1.get_schema());
     }
+    tuple_set.set_schema(scheam);
 
-    std::vector<const Condition *> conditions;
+    std::list<const Condition *> conditions;
     for (size_t i = 0; i < selects.condition_num; i++) {
         const Condition &condition = selects.conditions[i];
         if (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
@@ -656,77 +668,60 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
             conditions.push_back(&condition);
         }
     }
-    tuple_set.set_schema(scheam);
+    
+    std::list<const Condition *> match_conditions;
+    std::vector<std::vector<const Condition*>> conditions_group(tuple_sets.size());
+    gen_conditions_group(conditions, match_conditions, conditions_group, tuple_sets, tuple_sets.size() - 1);
 
     std::unordered_map<std::string, const Tuple*> tuples_map;
-    return do_cross_join(tuple_sets, tuple_sets.size() - 1, conditions, tuple_set, tuples_map, schemas_map);
+    return do_cross_join(tuple_sets, tuple_sets.size() - 1, conditions_group, tuple_set, tuples_map, schemas_map);
+}
+
+void gen_conditions_group(std::list<const Condition *> &conditions,
+                            std::list<const Condition *> &match_conditions,
+                            std::vector<std::vector<const Condition*>> &conditions_group,
+                            std::vector<TupleSet> &tuple_sets, 
+                            int index) {
+    if (index == -1) {
+        return;
+    }
+
+    const TupleSet &tuple_set = tuple_sets[index];
+    const std::vector<TupleField> &fields = tuple_set.get_schema().fields();
+    std::string table_name(fields[0].table_name());
+
+    for (auto iter = match_conditions.begin(); iter != match_conditions.end();) {
+        auto tmp = iter;
+        iter++;
+        std::string left_table((*tmp)->left_attr.relation_name);
+        std::string right_table((*tmp)->right_attr.relation_name);
+        if (left_table == table_name || right_table == table_name) {
+            conditions_group[index].push_back(*tmp);
+            match_conditions.erase(tmp);
+        }
+    }
+    for (auto iter = conditions.begin(); iter != conditions.end();) {
+        auto tmp = iter;
+        iter++;
+        std::string left_table((*tmp)->left_attr.relation_name);
+        std::string right_table((*tmp)->right_attr.relation_name);
+        if (left_table == table_name || right_table == table_name) {
+            match_conditions.push_back(*tmp);
+            conditions.erase(tmp);
+        }
+    }
+    gen_conditions_group(conditions, match_conditions, conditions_group, tuple_sets, index - 1);
 }
 
 RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index, 
-                    std::vector<const Condition *> conditions,
+                    std::vector<std::vector<const Condition *>> &conditions_group,
                     TupleSet &tuple_set, 
                     std::unordered_map<std::string, const Tuple*> &tuples_map,
                     std::unordered_map<std::string, const TupleSchema*> &schemas_map) {
 
     if (index == -1) {
-        for (auto &condition: conditions) {
-            std::string left_table(condition->left_attr.relation_name);
-            char *left_attr = condition->left_attr.attribute_name;
-            std::string right_table(condition->right_attr.relation_name);
-            char *right_attr = condition->right_attr.attribute_name;
-            
-            int i = schemas_map[left_table]->index_of_field(left_table.c_str(), left_attr);
-            int j = schemas_map[right_table]->index_of_field(right_table.c_str(), right_attr);
-            if ( i == -1 || j == -1) {
-                return RC::SCHEMA_FIELD_NAME_ILLEGAL;
-            }
-
-            const TupleValue &tuple_value1 = tuples_map[left_table]->get(i);
-            const TupleValue &tuple_value2 = tuples_map[right_table]->get(j);
-
-            bool left_is_null = tuple_value1.is_null();
-            bool right_is_null = tuple_value2.is_null();
-
-            if (left_is_null && right_is_null) {  // null comop null
-                if (condition->comp == IS_COMPOP) {   // is
-                    continue;
-                } else if (condition->comp == IS_NOT_COMPOP) {   // is not
-                    return RC::SUCCESS;
-                } else {     // >=、noop
-                    return RC::SUCCESS;
-                }
-            } else if (left_is_null) {  // null comop (value/id,anything not null)
-                if (condition->comp <= 7) {  // >=、noop
-                   return RC::SUCCESS;
-                } else if (condition->comp == IS_COMPOP) { // is
-                    return RC::SUCCESS;
-                } else if (condition->comp == IS_NOT_COMPOP) {  // is not
-                    continue;
-                } else {
-                    LOG_PANIC("Never should print this.");
-                }
-            } else if (right_is_null) {   // (value/id,anything not null) compop null
-                if (condition->comp <= 7) {  // >=、noop
-                    return RC::SUCCESS;
-                } else if (condition->comp == IS_COMPOP) {  // is
-                    return RC::SUCCESS;
-                } else if (condition->comp == IS_NOT_COMPOP) { // isnot
-                    continue;
-                } else {
-                    LOG_PANIC("Never should print this.");
-                }
-            } else {  // notnull comop notnull
-                int result = tuple_value1.compare(tuple_value2);
-                if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
-                                    condition->comp == CompOp::LESS_EQUAL)) ||
-                    (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
-                    (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
-                    continue;
-                }
-            }
-            return RC::SUCCESS;
-        }
         Tuple new_tuple;
+        // TODO: 这个地方可以优化
         const std::vector<TupleField> &tuple_fields = tuple_set.get_schema().fields();
         for (auto& tuple_field : tuple_fields) {
             std::string table_name(tuple_field.table_name());
@@ -741,18 +736,63 @@ RC do_cross_join(std::vector<TupleSet> &tuple_sets, int index,
     const TupleSet &tuple_set1 = tuple_sets[index];
     const std::vector<Tuple> &tuples = tuple_set1.tuples();
     const std::vector<TupleField> &fields = tuple_set1.get_schema().fields();
-
     std::string table_name(fields[0].table_name());
 
     int size = tuples.size();
     for (int i = 0; i < size; i++) {
         tuples_map[table_name] = &tuples[i];
-        RC rc = do_cross_join(tuple_sets, index - 1, conditions, tuple_set, tuples_map, schemas_map);
-        if (rc != RC::SUCCESS) {
-            return rc;
+        if (do_filter(conditions_group[index], tuples_map, schemas_map)) {
+            RC rc = do_cross_join(tuple_sets, index - 1, conditions_group, tuple_set, tuples_map, schemas_map);
+            if (rc != RC::SUCCESS) {
+                return rc;
+            }
         }
     }
 
     return RC::SUCCESS;
 }
 
+static bool do_filter(std::vector<const Condition *> &conditions, 
+                    std::unordered_map<std::string, const Tuple*> &tuples_map,
+                    std::unordered_map<std::string, const TupleSchema*> &schemas_map) {
+
+    for (auto &condition : conditions) {
+        std::string left_table(condition->left_attr.relation_name);
+        std::string right_table(condition->right_attr.relation_name);
+        char *left_attr = condition->left_attr.attribute_name;
+        char *right_attr = condition->right_attr.attribute_name;
+
+        int i = schemas_map[left_table]->index_of_field(left_table.c_str(), left_attr);
+        int j = schemas_map[right_table]->index_of_field(right_table.c_str(), right_attr);
+        if ( i == -1 || j == -1) {
+            return false;
+        }
+        const TupleValue &tuple_value1 = tuples_map[left_table]->get(i);
+        const TupleValue &tuple_value2 = tuples_map[right_table]->get(j);
+
+        bool left_is_null = tuple_value1.is_null();
+        bool right_is_null = tuple_value2.is_null();
+
+        if (left_is_null && right_is_null) {
+            if (!(condition->comp == IS_COMPOP)) {
+                return false;
+            }
+        } else if (left_is_null || right_is_null) {
+            if (!(condition->comp == IS_NOT_COMPOP)) {
+               return false;
+            }
+        } else {  // notnull comop notnull
+            int result = tuple_value1.compare(tuple_value2);
+            if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
+                                condition->comp == CompOp::LESS_EQUAL)) ||
+                (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
+                (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
+                // do nothing
+            } else {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
