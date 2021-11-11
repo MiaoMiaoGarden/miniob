@@ -385,7 +385,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
             char *name = "text";
             std::string path = name;
             std::ofstream fout(
-                    "./" + std::string(const_cast<char *>(table_meta_.name())) + "_" + std::to_string(key) + "_" +
+                    "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta_.name())) + "_" + std::to_string(key) + "_" +
                     path + ".txt");
             if (fout) {
                 //将out流转换为string类型，写入到文件流中

@@ -503,7 +503,7 @@ void TupleRecordConverter::add_record(const char *record) {
                 break;
             case TEXTS: {
                 int num = *(int *) (record + field_meta->offset());
-                std:: string path = "./" + std::string(const_cast<char *>(table_meta.name())) + "_" + std::to_string(num) + "_" + "text.txt";
+                std:: string path = "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta.name())) + "_" + std::to_string(num) + "_" + "text.txt";
                 tuple.add(path);
             }
 
