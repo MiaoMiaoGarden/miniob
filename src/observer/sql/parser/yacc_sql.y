@@ -238,6 +238,11 @@ create_index:		/*create index 语句的语法解析树*/
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
 			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
 		}
+	| CREATE INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON
+	{
+		CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
+		create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
+	}
     ;
     |CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON
         {
@@ -246,6 +251,12 @@ create_index:		/*create index 语句的语法解析树*/
             create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8);
 
         }
+
+id_list:
+	//empty
+	| ID {
+		create_index_add_attr(&CONTEXT->ssql->sstr.create_index, $1);
+	}
 drop_index:			/*drop index 语句的语法解析树*/
     DROP INDEX ID  SEMICOLON 
 		{
@@ -738,6 +749,40 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+	| ID comOp LBRACE SELECT select_attr FROM ID rel_list where orderby groupby RBRACE
+	{
+			RelAttr left_attr;
+			relation_attr_init(&left_attr, NULL, $1);
+
+			Selects subselection;
+			selects_append_relation(&subselection, $4);
+			selects_append_conditions(&subselection, CONTEXT->conditions, CONTEXT->condition_length);
+
+			Condition condition;
+			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| value comOp LBRACE SELECT select_attr FROM ID rel_list where orderby groupby RBRACE
+	{
+
+	}
+	| ID DOT ID comOp LBRACE SELECT select_attr FROM ID rel_list where orderby groupby RBRACE
+	{
+
+	}
+	| LBRACE SELECT select_attr FROM ID rel_list where orderby groupby RBRACE comOp ID
+	{
+
+	}
+	| LBRACE SELECT select_attr FROM ID rel_list where orderby groupby RBRACE comOp value
+	{
+
+	}
+	| LBRACE SELECT select_attr FROM ID rel_list where orderby groupby RBRACE comOp ID DOT ID
+	{
+
+	}
+
     ;
 groupby:
 	// empty
