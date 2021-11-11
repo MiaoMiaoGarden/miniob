@@ -369,9 +369,12 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
         }
         if (field->type() == TEXTS && value.type == CHARS) {
             value.type = TEXTS;
-            char *text = static_cast<char *>(value.data);
-            if (strlen(text) > 4096) {
-                std::strncpy(text, text, 4096);
+            char text[4097];
+            char *val = static_cast<char *>(value.data);
+            if (strlen(val) > 4096) {
+                std::strncpy(text, static_cast<char *>(value.data), 4096);
+            } else {
+                strcpy(text , static_cast<char *>(value.data));
             }
 //           std:: string out;
             std::ostringstream os;
