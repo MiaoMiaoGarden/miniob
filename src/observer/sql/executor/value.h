@@ -254,6 +254,9 @@ public:
     std::string get_value() {
         return value_;
     }
+    std::string get_string_value() const override {
+        return value_;
+    }
 
 private:
     std::string value_;

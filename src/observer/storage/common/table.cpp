@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 #include <algorithm>
 #include<iostream>
+
+#include <cstring>
 #include<sstream>
 #include<fstream>
 #include "storage/common/table.h"
