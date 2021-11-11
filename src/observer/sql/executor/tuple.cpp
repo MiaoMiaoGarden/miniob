@@ -385,15 +385,8 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
 
     // need to aggregate
     //   init groupby
-    const RelAttr groupby_attr = input_schema.get_groupby();
+    const std::vector<RelAttr> &groupby_attr  = input_schema.get_groupby();
     const int groupby_num = input_schema.get_groupby_num();
-    const char* group_relation_name = input_schema.group_relation_name();
-    int groupby_attr_index = -1;
-    AttrType groupattr_type = AttrType::UNDEFINED;
-    if(groupby_num !=0){
-       groupby_attr_index = output_schema.index_of_field(group_relation_name, groupby_attr.attribute_name);
-       groupattr_type = output_schema.field(groupby_attr_index).type();
-    }
     GroupHandler *group_handler = new GroupHandler();
 
     AggregateExeNode agg_exec_node;
@@ -401,15 +394,14 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
     // group and aggregate
     for (auto& tuple : tuple_set.tuples()) {
         Tuple new_tuple;
-        int index = 0;
         int group = 0;
-        if ( groupby_attr_index!=-1 ){
-            TupleValue *tuplevalue = tuple.get_pointer(groupby_attr_index).get();
-            group = group_handler->get_group(tuplevalue, groupattr_type);
+        if ( groupby_num > 0){ 
+            group = group_handler->get_group(tuple,groupby_attr, output_schema);
             if(group<0){
                 return RC::GENERIC_ERROR;
             }
         }
+        int index = 0;
         for (auto& tuple_field : tuple_fields) {
             int i = output_schema.index_of_field(tuple_field.table_name(), tuple_field.field_name());
             if(is_valid_aggre(tuple_field.field_name())) {
@@ -430,8 +422,8 @@ RC TupleSet::set_tuple_set(TupleSet &&tuple_set) {
 
     // get aggregated data
     int group_num = 1;
-    if(groupby_attr_index!=-1){
-        group_num = group_handler->get_group_num(groupattr_type);
+    if(groupby_num>0){
+        group_num = group_handler->get_group_num();
     }
     for(int group_id = 0; group_id < group_num; group_id++){
         Tuple new_tuple;

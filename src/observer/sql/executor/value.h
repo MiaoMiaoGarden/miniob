@@ -24,16 +24,13 @@ See the Mulan PSL v2 for more details. */
 
 class TupleValue {
 public:
-    TupleValue() = default;
 
-    virtual ~TupleValue() = default;
-
-    virtual bool is_null() const = 0;
-
-    virtual void to_string(std::ostream &os) const = 0;
-
-    virtual int compare(const TupleValue &other) const = 0;
-
+  TupleValue() = default;
+  virtual ~TupleValue() = default;
+  virtual bool is_null() const = 0;
+  virtual void to_string(std::ostream &os) const = 0;
+  virtual int compare(const TupleValue &other) const = 0;
+  virtual std::string get_string_value() const = 0;
 private:
 };
 
@@ -71,9 +68,13 @@ public:
         return 0;
     }
 
-    int get_value() {
-        return value_;
-    }
+  int get_value(){
+    return value_;
+  }
+  
+  std::string get_string_value() const override {
+    return std::to_string(value_);
+  }
 
 private:
     int value_;
@@ -81,83 +82,88 @@ private:
 
 class FloatValue : public TupleValue {
 public:
-    explicit FloatValue(float value) : value_(value) {
-    }
+  explicit FloatValue(float value) : value_(value) {
+  }
 
-    bool is_null() const override {
-        char *char_value = (char *) (&value_);
-        if (*char_value == '!') {
-            return true;
-        } else {
-            return false;
-        }
+  bool is_null() const override {
+    char *char_value = (char*)(&value_);
+    if(*char_value=='!'){
+      return true;
+    } else {
+      return false;
     }
-
-    void to_string(std::ostream &os) const override {
-        if (is_null()) {
-            os << "null";
-        } else {
-            os << value_;
-        }
+  }
+  void to_string(std::ostream &os) const override {
+    if(is_null()){
+      os << "null";
+    } else {
+      os << value_;
     }
+  }
 
-    int compare(const TupleValue &other) const override {
-        const FloatValue &float_other = (const FloatValue &) other;
-        float result = value_ - float_other.value_;
-        if (result > 0) { // 浮点数没有考虑精度问题
-            return 1;
-        }
-        if (result < 0) {
-            return -1;
-        }
-        return 0;
+  int compare(const TupleValue &other) const override {
+    const FloatValue & float_other = (const FloatValue &)other;
+    float result = value_ - float_other.value_;
+    if (result > 0) { // 浮点数没有考虑精度问题
+      return 1;
     }
-
-    float get_value() {
-        return value_;
+    if (result < 0) {
+      return -1;
     }
+    return 0;
+  }
 
+  float get_value(){
+    return value_;
+  }
+
+  std::string get_string_value() const override {
+    return std::to_string(value_);
+  }
 private:
     float value_;
 };
 
 class StringValue : public TupleValue {
 public:
-    StringValue(const char *value, int len) : value_(value, len) {
-    }
+  StringValue(const char *value, int len) : value_(value, len){
+  }
+  explicit StringValue(const char *value) : value_(value) {
+  }
+  bool is_null() const override {
+    return value_[0] == '!';
+  }
 
-    explicit StringValue(const char *value) : value_(value) {
+  void to_string(std::ostream &os) const override {
+    if(is_null()){
+      os << "null";
+    } else {
+      os << value_;
     }
+  }
 
-    bool is_null() const override {
-        return value_[0] == '!';
+  int compare(const TupleValue &other) const override {
+    const StringValue &string_other = (const StringValue &)other;
+    int result = strcmp(value_.c_str(), string_other.value_.c_str());
+    if (result < 0) {
+        return -1;
     }
-
-    void to_string(std::ostream &os) const override {
-        if (is_null()) {
-            os << "null";
-        } else {
-            os << value_;
-        }
+    if (result > 0) {
+        return 1;
     }
+    return 0;
+  }
 
-    int compare(const TupleValue &other) const override {
-        const StringValue &string_other = (const StringValue &) other;
-        int result = strcmp(value_.c_str(), string_other.value_.c_str());
-        if (result < 0) {
-            return -1;
-        }
-        if (result > 0) {
-            return 1;
-        }
-        return 0;
-    }
+  std::string get_value(){
+    return value_;
+  }
 
-    std::string get_value() {
-        return value_;
-    }
+  std::string get_string_value() const override {
+    return value_;
+  }
 
-    std::string value_;
+private:
+  std::string value_;
 };
 
 class DateValue : public TupleValue {
@@ -203,6 +209,10 @@ public:
         return value_;
     }
 
+    std::string get_string_value() const override {
+      return std::to_string(value_);
+    }
+
 private:
     int value_;
 };
@@ -231,7 +241,7 @@ public:
 
     int compare(const TupleValue &other) const override {
         const StringValue &string_other = (const StringValue &) other;
-        int result = strcmp(value_.c_str(), string_other.value_.c_str());
+        int result = strcmp(value_.c_str(), string_other.get_string_value().c_str());
         if (result < 0) {
             return -1;
         }
