@@ -371,7 +371,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
             value.type = TEXTS;
             char *text = static_cast<char *>(value.data);
             if (strlen(text) > 4096) {
-                std::strncpy(static_cast<char *>(value.data), text, 4096);
+                std::strncpy(text, text, 4096);
             }
 //           std:: string out;
             std::ostringstream os;
