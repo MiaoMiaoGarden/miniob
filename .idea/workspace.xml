@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated>
+      <config projectName="minidb" targetName="bitmap_test" />
+      <config projectName="minidb" targetName="pidfile_test" />
+      <config projectName="minidb" targetName="log_test" />
+      <config projectName="minidb" targetName="obclient" />
+      <config projectName="minidb" targetName="common" />
+      <config projectName="minidb" targetName="path_test" />
+      <config projectName="minidb" targetName="observer_static" />
+      <config projectName="minidb" targetName="bp_manager_test" />
+      <config projectName="minidb" targetName="rc_test" />
+      <config projectName="minidb" targetName="md5_test" />
+      <config projectName="minidb" targetName="common_static" />
+      <config projectName="minidb" targetName="observer" />
+      <config projectName="minidb" targetName="client_performance_test" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="8f4d0543-6143-4bcc-94f9-e699d90521f6" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googlemock/test/gmock_leak_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googlemock/test/gmock_leak_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googlemock/test/gmock_output_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googlemock/test/gmock_output_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googlemock/test/gmock_test_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googlemock/test/gmock_test_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-break-on-failure-unittest.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-break-on-failure-unittest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-catch-exceptions-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-catch-exceptions-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-color-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-color-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-env-var-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-env-var-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-failfast-unittest.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-failfast-unittest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-filter-unittest.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-filter-unittest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-list-tests-unittest.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-list-tests-unittest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-output-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-output-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-setuptestsuite-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-setuptestsuite-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-shuffle-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-shuffle-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-throw-on-failure-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-throw-on-failure-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-uninitialized-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/googletest-uninitialized-test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_help_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_help_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_skip_check_output_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_skip_check_output_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_skip_environment_check_output_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_skip_environment_check_output_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_test_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_test_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_testbridge_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_testbridge_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_xml_outfiles_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_xml_outfiles_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_xml_output_unittest.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_xml_output_unittest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_xml_test_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/googletest/googletest/test/gtest_xml_test_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/cmake_builder.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/cmake_builder.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/meson_builder.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/meson_builder.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/run-clang-format.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/run-clang-format.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/run-clang-format.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp/.travis_scripts/run-clang-format.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp/amalgamate.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp/amalgamate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/jsoncpp/reformat.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/jsoncpp/reformat.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/autogen.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/autogen.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/checkpatch.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/checkpatch.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/event_rpcgen.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/event_rpcgen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/extra/abi-check/abi_check.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/extra/abi-check/abi_check.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/make_epoll_table.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/make_epoll_table.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/test/check-dumpevents.py" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/test/check-dumpevents.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/test/rpcgen_wrapper.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/test/rpcgen_wrapper.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/test/test-ratelim.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/test/test-ratelim.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deps/libevent/test/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deps/libevent/test/test.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/executor/aggregate.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/executor/aggregate.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/executor/execute_stage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/executor/execute_stage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/executor/tuple.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/executor/tuple.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/executor/tuple.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/executor/tuple.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/executor/value.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/executor/value.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/parser/parse_defs.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/parser/parse_defs.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/parser/yacc_sql.tab.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/parser/yacc_sql.tab.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/parser/yacc_sql.tab.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/parser/yacc_sql.tab.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/observer/sql/parser/yacc_sql.y" beforeDir="false" afterPath="$PROJECT_DIR$/src/observer/sql/parser/yacc_sql.y" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="clangTidyViaClangd" value="false" />
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="JsbtTreeLayoutManager">
+    <layout place="tools.popupGrunt">
+      <scroll-view-position x="0" y="0" />
+    </layout>
+  </component>
+  <component name="ProjectId" id="1zgHWYGW6MTnuCX1nH8i8tMLZx7" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="cidr.known.project.marker" value="true" />
+    <property name="cmake.loaded.for.project" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="settings.editor.selected.configurable" value="CMakeSettings" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="CMake Application.observer">
+    <configuration name="bitmap_test" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="bitmap_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="bitmap_test" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="log_test" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="log_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="log_test" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test_bp_manager.test_bp_manager_simple_lru" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="bp_manager_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="bp_manager_test" TEST_CLASS="test_bp_manager" TEST_METHOD="test_bp_manager_simple_lru" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="client_performance_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="client_performance_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="client_performance_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="common" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="common" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="common_static" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="common_static" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="md5_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="md5_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="md5_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="obclient" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="obclient" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="obclient">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="observer" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-f ./etc/observer.ini" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="observer" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="observer">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="observer_static" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="observer_static" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="path_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="path_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="path_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="pidfile_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="pidfile_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="pidfile_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rc_test" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="minidb" TARGET_NAME="rc_test" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="minidb" RUN_TARGET_NAME="rc_test">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rebuild_cache" type="MAKEFILE_TARGET_RUN_CONFIGURATION" factoryName="Makefile" temporary="true">
+      <makefile filename="$PROJECT_DIR$/build/Makefile" target="rebuild_cache" workingDirectory="" arguments="">
+        <envs />
+      </makefile>
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.client_performance_test" />
+      <item itemvalue="CMake Application.common" />
+      <item itemvalue="CMake Application.common_static" />
+      <item itemvalue="CMake Application.md5_test" />
+      <item itemvalue="CMake Application.obclient" />
+      <item itemvalue="CMake Application.observer" />
+      <item itemvalue="CMake Application.observer_static" />
+      <item itemvalue="CMake Application.path_test" />
+      <item itemvalue="CMake Application.pidfile_test" />
+      <item itemvalue="CMake Application.rc_test" />
+      <item itemvalue="Google Test.bitmap_test" />
+      <item itemvalue="Google Test.log_test" />
+      <item itemvalue="Google Test.test_bp_manager.test_bp_manager_simple_lru" />
+      <item itemvalue="Makefile Target.rebuild_cache" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Makefile Target.rebuild_cache" />
+        <item itemvalue="Google Test.test_bp_manager.test_bp_manager_simple_lru" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8f4d0543-6143-4bcc-94f9-e699d90521f6" name="Default Changelist" comment="" />
+      <created>1634562845990</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1634562845990</updated>
+      <workItem from="1634562847563" duration="6955000" />
+      <workItem from="1634621844536" duration="27942000" />
+      <workItem from="1634709418154" duration="3512000" />
+      <workItem from="1634736215023" duration="11804000" />
+      <workItem from="1634797389153" duration="8379000" />
+      <workItem from="1634824286693" duration="15497000" />
+      <workItem from="1635053955276" duration="24390000" />
+      <workItem from="1635141528862" duration="19697000" />
+      <workItem from="1635245694045" duration="6521000" />
+      <workItem from="1635301279144" duration="734000" />
+      <workItem from="1635302055733" duration="459000" />
+      <workItem from="1635302565826" duration="167000" />
+      <workItem from="1635302834484" duration="1013000" />
+      <workItem from="1635305079408" duration="1524000" />
+      <workItem from="1635312635593" duration="1617000" />
+      <workItem from="1635321312001" duration="7000" />
+      <workItem from="1635321779629" duration="3695000" />
+      <workItem from="1635336112608" duration="43210000" />
+      <workItem from="1635777885482" duration="7524000" />
+      <workItem from="1635855623383" duration="11330000" />
+      <workItem from="1635923402742" duration="2472000" />
+      <workItem from="1635935401917" duration="2403000" />
+      <workItem from="1635993402574" duration="15945000" />
+      <workItem from="1636464813861" duration="22333000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/observer/storage/common/table.cpp</url>
+          <line>878</line>
+          <option name="timeStamp" value="78" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/observer/sql/executor/tuple.cpp</url>
+          <line>494</line>
+          <option name="timeStamp" value="96" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

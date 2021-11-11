@@ -90,6 +90,7 @@ ParserContext *get_context(yyscan_t scanner)
         STRING_T
         FLOAT_T
         DATE_T
+        TEXT_T
         HELP
         EXIT
         DOT //QUOTE
@@ -145,6 +146,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> STAR
 %token <string> STRING_V
 %token <string> DATE
+%token <string> TEXT
 //非终结符
 
 %type <number> type;
@@ -328,6 +330,7 @@ type:
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
        | DATE_T { $$=DATES; }
+       | TEXT_T { $$=TEXTS; }
        ;
 ID_get:
 	ID 
@@ -386,7 +389,7 @@ value:
 		}
 		}
     |SSS {
-			$1 = substr($1,1,strlen($1)-2);
+		$1 = substr($1,1,strlen($1)-2);
 		if (CONTEXT->multi_insert_lines == 0)  {
 
   	    	value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
