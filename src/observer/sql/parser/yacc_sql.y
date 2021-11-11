@@ -21,6 +21,8 @@ typedef struct ParserContext {
   size_t multi_insert_lines;
   extraValues extraValue[MAX_NUM];
   CompOp comp;
+  AggreType aggre_type[MAX_NUM];
+  int asc_desc;
 	char id[MAX_NUM];
 } ParserContext;
 
@@ -46,6 +48,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->select_length = 0;
   context->value_length = 0;
   context->ssql->sstr.insertion.value_num = 0;
+  context->asc_desc = -1;
   printf("parse sql failed. error=%s", str);
 }
 
@@ -87,6 +90,7 @@ ParserContext *get_context(yyscan_t scanner)
         STRING_T
         FLOAT_T
         DATE_T
+        TEXT_T
         HELP
         EXIT
         DOT //QUOTE
@@ -110,6 +114,18 @@ ParserContext *get_context(yyscan_t scanner)
 		MI
 		MA
 		AV
+		NOT
+		NULL_TOKEN
+		NULLABLE
+		IS
+		ISNOT
+		GROUP
+		BY
+		ASC
+		ORDER
+		INNER
+		JOIN
+
 
 %union {
   struct _Attr *attr;
@@ -122,24 +138,21 @@ ParserContext *get_context(yyscan_t scanner)
 
 }
 
-%token <number> NUMBER
-%token <floats> FLOAT 
+%token <string> NUMBER
+%token <string> FLOAT 
 %token <string> ID
-%token <string> TOCOUNT
-%token <string> TOMAX
-%token <string> TOMIN
-%token <string> TOAVG
 %token <string> PATH
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
 %token <string> DATE
+%token <string> TEXT
 //非终结符
 
 %type <number> type;
 %type <condition1> condition;
 %type <value1> value;
-%type <number> number;
+// %type <number> number;
 
 %%
 
@@ -258,10 +271,12 @@ attr_def_list:
     ;
     
 attr_def:
-    ID_get type LBRACE number RBRACE 
+    ID_get type LBRACE NUMBER RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			int int_length;
+			string2int(&int_length, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, int_length, 0);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -269,10 +284,27 @@ attr_def:
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
 			CONTEXT->value_length++;
 		}
+	|ID_get type NULLABLE{
+		AttrInfo attribute;
+		attr_info_init(&attribute, CONTEXT->id, $2, 4, 1);
+		create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
+		CONTEXT->value_length++;
+	}
     |ID_get type
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, 0);
+			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
+			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].type=$2;  
+			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length=4; // default attribute length
+			CONTEXT->value_length++;
+		}
+	|ID_get type NOT NULL_TOKEN
+			{
+			AttrInfo attribute;
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, 0);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -282,14 +314,12 @@ attr_def:
 		}
 
     ;
-number:
-		NUMBER {$$ = $1;}
-		;
 type:
 	INT_T { $$=INTS; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
        | DATE_T { $$=DATES; }
+       | TEXT_T { $$=TEXTS; }
        ;
 ID_get:
 	ID 
@@ -348,7 +378,7 @@ value:
 		}
 		}
     |SSS {
-			$1 = substr($1,1,strlen($1)-2);
+		$1 = substr($1,1,strlen($1)-2);
 		if (CONTEXT->multi_insert_lines == 0)  {
 
   	    	value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
@@ -366,6 +396,15 @@ value:
             value_init_date(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++], $1);
 	    }
 	    }
+	|NULL_TOKEN{
+        if (CONTEXT->multi_insert_lines == 0) {
+
+  		    value_init_null(&CONTEXT->values[CONTEXT->value_length++]);
+		} else {
+		    size_t line = CONTEXT->multi_insert_lines - 1;
+		    value_init_null(&CONTEXT->extraValue[line].values[CONTEXT->extraValue[line].value_length++]);
+		}
+		}
     ;
     
 delete:		/*  delete 语句的语法解析树*/
@@ -389,14 +428,16 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where SEMICOLON
+    SELECT select_attr FROM ID rel_list where orderby groupby SEMICOLON
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
 
 			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
-
-			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			if( CONTEXT->ssql->flag != SCF_FAILURE){
+				CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			}
+			
 			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
 
 			//临时变量清零
@@ -406,90 +447,132 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->value_length = 0;
 	}
 	;
+innerjoin_list:
+	| INNER JOIN ID innerjoin_conditions innerjoin_list{
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+	};
+
+innerjoin_conditions:
+    /* empty */ 
+    | ON condition innerjoin_condition_list {	
+				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
+			};
+
+innerjoin_condition_list:
+    /* empty */
+    | AND condition innerjoin_condition_list {
+				// CONTEXT->conditions[CONTEXT->condition_length++]=*$2;
+			}
+    ;
 
 select_attr:
-    STAR {  
+    selectvalue attr_list{  
+			
+		}
+	| aggretype LBRACE aggrevalue RBRACE attr_list{
+			for (int i = 0; i<CONTEXT->ssql->sstr.selection.attr_num; i++){
+				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
+			}
+		}
+	| aggretype LBRACE  RBRACE attr_list{
+			CONTEXT->ssql->flag = SCF_FAILURE;
+		}
+
+    ;
+
+selectvalue:
+	STAR {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ID  {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, "*", 0, -1);
+			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-    | ID attr_list {
+  	| ID DOT ID  {
 			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1, 0, -1);
+			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-  	| ID DOT ID attr_list {
+    | ID DOT STAR  {
 			RelAttr attr;
-			relation_attr_init(&attr, $1, $3, 0, -1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
-    | TOCOUNT attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1, 1, 0);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| TOMIN attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1, 1, 1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| TOMAX attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1, 1, 2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| TOAVG attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1, 1, 3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-    | ID DOT STAR attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $1, "*", 0, -1);
+			relation_attr_init(&attr, $1, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
         }
-    ;
+
+aggrevalue:
+	STAR aggrevaluelist {  
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    | ID aggrevaluelist {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+  	| ID DOT ID aggrevaluelist {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| NUMBER aggrevaluelist {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    | FLOAT aggrevaluelist {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);     
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+
+aggrevaluelist:
+	| COMMA STAR aggrevaluelist {
+			CONTEXT->ssql->flag = SCF_FAILURE;
+	    }
+	| COMMA  ID aggrevaluelist {
+			CONTEXT->ssql->flag = SCF_FAILURE;
+	    }
+	| COMMA ID DOT ID aggrevaluelist {
+			CONTEXT->ssql->flag = SCF_FAILURE;
+	    }
+	| COMMA NUMBER aggrevaluelist {
+			CONTEXT->ssql->flag = SCF_FAILURE;
+	    }
+	| COMMA FLOAT aggrevaluelist {
+			CONTEXT->ssql->flag = SCF_FAILURE;
+	    }
+
+selectvalue_commaed:
+	ID  {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+  	| ID DOT ID  {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    | ID DOT STAR  {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        }
+
 attr_list:
     /* empty */
-    | COMMA ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2, 0, -1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-     	// CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
+	| COMMA aggretype LBRACE aggrevalue RBRACE attr_list {
+			for (int i = 0; i<CONTEXT->ssql->sstr.selection.attr_num; i++){
+				CONTEXT->ssql->sstr.selection.attributes[i].aggre_type = CONTEXT->aggre_type[i];
+			}
+	    }
+    | COMMA selectvalue_commaed attr_list {
+			
       }
-    | COMMA ID DOT ID attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, $4, 0, -1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
-  	  }
-	| COMMA TOCOUNT attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL,$2, 1, 0);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA TOMIN attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2, 1, 1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA TOMAX attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2, 1, 2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-	| COMMA TOAVG attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2, 1, 3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	    }
-    | COMMA ID DOT STAR attr_list {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, "*", 0, -1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-        }
   	;
 
 rel_list:
@@ -497,6 +580,9 @@ rel_list:
     | COMMA ID rel_list {	
 				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
 		  }
+	| INNER JOIN ID innerjoin_conditions innerjoin_list {
+		selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+	}
     ;
 where:
     /* empty */ 
@@ -514,7 +600,7 @@ condition:
     ID comOp value 
 		{
 			RelAttr left_attr;
-			relation_attr_init(&left_attr, NULL, $1, 0, -1);
+			relation_attr_init(&left_attr, NULL, $1);
 
 			Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
@@ -555,9 +641,9 @@ condition:
 		|ID comOp ID 
 		{
 			RelAttr left_attr;
-			relation_attr_init(&left_attr, NULL, $1, 0, -1);
+			relation_attr_init(&left_attr, NULL, $1);
 			RelAttr right_attr;
-			relation_attr_init(&right_attr, NULL, $3, 0, -1);
+			relation_attr_init(&right_attr, NULL, $3);
 
 			Condition condition;
 			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
@@ -576,7 +662,7 @@ condition:
 		{
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 			RelAttr right_attr;
-			relation_attr_init(&right_attr, NULL, $3, 0, -1);
+			relation_attr_init(&right_attr, NULL, $3);
 
 			Condition condition;
 			condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
@@ -597,7 +683,7 @@ condition:
     |ID DOT ID comOp value
 		{
 			RelAttr left_attr;
-			relation_attr_init(&left_attr, $1, $3, 0, -1);
+			relation_attr_init(&left_attr, $1, $3);
 			Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
 			Condition condition;
@@ -620,7 +706,7 @@ condition:
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 
 			RelAttr right_attr;
-			relation_attr_init(&right_attr, $3, $5, 0, -1);
+			relation_attr_init(&right_attr, $3, $5);
 
 			Condition condition;
 			condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
@@ -639,9 +725,9 @@ condition:
     |ID DOT ID comOp ID DOT ID
 		{
 			RelAttr left_attr;
-			relation_attr_init(&left_attr, $1, $3, 0, -1);
+			relation_attr_init(&left_attr, $1, $3);
 			RelAttr right_attr;
-			relation_attr_init(&right_attr, $5, $7, 0, -1);
+			relation_attr_init(&right_attr, $5, $7);
 
 			Condition condition;
 			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
@@ -656,6 +742,70 @@ condition:
 			// $$->right_attr.attribute_name=$7;
     }
     ;
+groupby:
+	// empty
+	|GROUP BY ID groupby_list {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL,$3);
+        CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+	}
+	| GROUP BY ID DOT ID groupby_list{
+		RelAttr attr;
+		relation_attr_init(&attr, $3,$5);
+		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+	}
+	;
+
+groupby_list:
+	// empty
+	|COMMA ID groupby_list{
+		RelAttr attr;
+		relation_attr_init(&attr, NULL,$2);
+		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+	}
+	|COMMA ID DOT ID groupby_list{
+		RelAttr attr;
+		relation_attr_init(&attr, $2,$4);
+		CONTEXT->ssql->sstr.selection.groupby_attr[(CONTEXT->ssql->sstr.selection.groupby_num)++] = attr;
+	}
+	;
+
+orderby:
+    /* empty */ 
+    | ORDER BY orderby_attr orderby_attr_list {	
+				//
+			}
+    ;
+orderby_attr_list:
+    /* empty */
+    | COMMA orderby_attr orderby_attr_list {
+				// 
+			}
+    ;
+orderby_attr:
+	ID AscDesc {
+		Orderby orderby;
+		relation_attr_init(&orderby.attr, NULL, $1);
+		orderby_init_append(&(CONTEXT->ssql->sstr.selection), CONTEXT->asc_desc, &orderby);
+	}
+	| ID DOT ID AscDesc {
+		Orderby orderby;
+		relation_attr_init(&orderby.attr, $1, $3);
+		orderby_init_append(&(CONTEXT->ssql->sstr.selection), CONTEXT->asc_desc, &orderby);
+	}
+	
+	
+AscDesc:
+	// empty
+	{
+		CONTEXT->asc_desc = 0;
+	}
+	| ASC {
+		CONTEXT->asc_desc = 0;
+	}
+	| DESC {
+		CONTEXT->asc_desc = 1;
+	}
 
 comOp:
   	  EQ { CONTEXT->comp = EQUAL_TO; }
@@ -664,7 +814,24 @@ comOp:
     | LE { CONTEXT->comp = LESS_EQUAL; }
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
+	| IS {CONTEXT->comp = IS_COMPOP; }
+	| ISNOT {CONTEXT->comp = IS_NOT_COMPOP; }
     ;
+
+aggretype:
+	COU {
+		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = COUNT;
+	}
+	| MI {
+		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = MIN;
+	}
+	| MA {
+		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = MAX;
+	}
+	| AV {
+		CONTEXT->aggre_type[CONTEXT->ssql->sstr.selection.attr_num] = AVG;
+	}
+	;
 
 load_data:
 		LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON

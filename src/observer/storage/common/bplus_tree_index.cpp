@@ -62,11 +62,14 @@ RC BplusTreeIndex::close() {
 
 RC BplusTreeIndex::insert_entry(const char *record, const RID *rid) {
     if (index_meta_.unique()) {
+
         std::string key = record + field_meta_.offset();
-        if (unique_conflict(key)) {
-            return RC::UNIQUEINDEX_CONFLICT;
-        } else {
-            unique2Key_[key]++;
+        if(key!="!null"){ // null key can be not unique
+            if (unique_conflict(key)) {
+                return RC::UNIQUEINDEX_CONFLICT;
+            } else {
+                unique2Key_[key]++;
+            }
         }
     }
     return index_handler_.insert_entry(record + field_meta_.offset(), rid);

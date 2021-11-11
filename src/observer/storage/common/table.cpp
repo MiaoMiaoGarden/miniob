@@ -15,7 +15,11 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
+#include<iostream>
 
+#include <cstring>
+#include<sstream>
+#include<fstream>
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
 #include "common/log/log.h"
@@ -233,6 +237,7 @@ RC Table::insert_record(Trx *trx, Record *record) {
     if (insert_unique_conflict(record->data)) {
         return RC::CONSTRAINT_UNIQUE;
     }
+
     rc = record_handler_->insert_record(record->data, table_meta_.record_size(), &record->rid);
     if (rc != RC::SUCCESS) {
         LOG_ERROR("Insert record failed. table name=%s, rc=%d:%s", table_meta_.name(), rc, strrc(rc));
@@ -270,7 +275,8 @@ RC Table::insert_record(Trx *trx, Record *record) {
     }
     return rc;
 }
-RC Table::mulit_insert_record(Trx *trx, int value_num, const Value *values, std::vector<Record>& trash) {
+
+RC Table::mulit_insert_record(Trx *trx, int value_num, const Value *values, std::vector<Record> &trash) {
     if (value_num <= 0 || nullptr == values) {
         LOG_ERROR("Invalid argument. value num=%d, values=%p", value_num, values);
         return RC::INVALID_ARGUMENT;
@@ -295,6 +301,7 @@ RC Table::mulit_insert_record(Trx *trx, int value_num, const Value *values, std:
     delete[] record_data;
     return rc;
 }
+
 RC Table::insert_record(Trx *trx, int value_num, const Value *values) {
     if (value_num <= 0 || nullptr == values) {
         LOG_ERROR("Invalid argument. value num=%d, values=%p", value_num, values);
@@ -349,21 +356,48 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
     }
 
     const int normal_field_start_index = table_meta_.sys_field_num();
+    std::vector<bool> fields_nullable;
+    table_meta_.fields_nullable_type(fields_nullable);
     for (int i = 0; i < value_num; i++) {
         const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-        const Value &value = values[i];
-        if (field->type() != value.type) {
+        Value &value = const_cast<Value &>(values[i]);
+        if (field->type() != value.type && NULLS != value.type &&
+            field->type() != TEXTS) {  // NULLS type can match any type
             LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                       field->name(), field->type(), value.type);
             return RC::SCHEMA_FIELD_TYPE_MISMATCH;
         }
-        if (field->type() == AttrType::DATES) {
-            // 处理对于日期字段的正确性判断
-            if (value.data) {
-                if (!isValidDate(static_cast<char *>(value.data))) {
-                    return RC::GENERIC_ERROR;
-                }
+        if (field->type() == TEXTS && value.type == CHARS) {
+            value.type = TEXTS;
+            char *text = static_cast<char *>(value.data);
+            if (strlen(text) > 4096) {
+                std::strncpy(static_cast<char *>(value.data), text, 4096);
             }
+//           std:: string out;
+            std::ostringstream os;
+            {
+                os << text << std::endl;
+            }
+            int a = rand();
+            int b = rand();
+            int c = rand();
+            int key = a * 99 + b * 9 + c;
+            char *name = "text";
+            std::string path = name;
+            std::ofstream fout(
+                    "./" + std::string(const_cast<char *>(table_meta_.name())) + "_" + std::to_string(key) + "_" +
+                    path + ".txt");
+            if (fout) {
+                //将out流转换为string类型，写入到文件流中
+                fout << os.str() << std::endl;
+                fout.close();
+            }
+            value.data = static_cast<void *>(&key);
+        }
+        if (NULLS == value.type && fields_nullable[i] == false) {
+            LOG_ERROR("fields not nullable. field name=%s, type=%d, but given=%d",
+                      field->name(), field->type(), value.type);
+            return RC::SCHEMA_FIELD_TYPE_MISMATCH;
         }
     }
 
@@ -374,6 +408,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
     for (int i = 0; i < value_num; i++) {
         const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
         const Value &value = values[i];
+        std::string data = (char *) (value.data);
+        // std::transform(data.begin(), data.end(), ::tolower);
         memcpy(record + field->offset(), value.data, field->len());
     }
 
@@ -431,15 +467,17 @@ static RC scan_record_reader_adapter(Record *record, void *context) {
     return RC::SUCCESS;
 }
 
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, void (*record_reader)(const char *data, void *context)) {
-  RecordReaderScanAdapter adapter(record_reader, context);
-  return scan_record(trx, filter, limit, (void *)&adapter, scan_record_reader_adapter);
+RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context,
+                      void (*record_reader)(const char *data, void *context)) {
+    RecordReaderScanAdapter adapter(record_reader, context);
+    return scan_record(trx, filter, limit, (void *) &adapter, scan_record_reader_adapter);
 }
 
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context, RC (*record_reader)(Record *record, void *context)) {
-  if (nullptr == record_reader) {
-    return RC::INVALID_ARGUMENT;
-  }
+RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context,
+                      RC (*record_reader)(Record *record, void *context)) {
+    if (nullptr == record_reader) {
+        return RC::INVALID_ARGUMENT;
+    }
 /*
 RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context,
                       void (*record_reader)(const char *data, void *context)) {
@@ -505,7 +543,7 @@ RC Table::scan_record_by_index(Trx *trx, IndexScanner *scanner, ConditionFilter 
     while (record_count < limit) {
         rc = scanner->next_entry(&rid);
         if (rc != RC::SUCCESS) {
-            if (RC::RECORD_EOF == rc) {
+            if (RC::RECORD_EOF == rc || RC::RECORD_NO_MORE_IDX_IN_MEM == rc) {
                 rc = RC::SUCCESS;
                 break;
             }
@@ -544,46 +582,46 @@ static RC insert_index_record_reader_adapter(Record *record, void *context) {
 RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name, const int &is_unique) {
 
 
-  if (index_name == nullptr || common::is_blank(index_name) ||
-      attribute_name == nullptr || common::is_blank(attribute_name)) {
-    return RC::INVALID_ARGUMENT;
-  }
-  if (table_meta_.index(index_name) != nullptr ||
-      table_meta_.find_index_by_field((attribute_name))) {
-    return RC::SCHEMA_INDEX_EXIST;
-  }
+    if (index_name == nullptr || common::is_blank(index_name) ||
+        attribute_name == nullptr || common::is_blank(attribute_name)) {
+        return RC::INVALID_ARGUMENT;
+    }
+    if (table_meta_.index(index_name) != nullptr ||
+        table_meta_.find_index_by_field((attribute_name))) {
+        return RC::SCHEMA_INDEX_EXIST;
+    }
 
-  const FieldMeta *field_meta = table_meta_.field(attribute_name);
-  if (!field_meta) {
-    return RC::SCHEMA_FIELD_MISSING;
-  }
+    const FieldMeta *field_meta = table_meta_.field(attribute_name);
+    if (!field_meta) {
+        return RC::SCHEMA_FIELD_MISSING;
+    }
 
-  IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, *field_meta, is_unique);
-  if (rc != RC::SUCCESS) {
-    return rc;
-  }
+    IndexMeta new_index_meta;
+    RC rc = new_index_meta.init(index_name, *field_meta, is_unique);
+    if (rc != RC::SUCCESS) {
+        return rc;
+    }
 
-  // 创建索引相关数据
-  BplusTreeIndex *index = new BplusTreeIndex();
-  std::string index_file = index_data_file(base_dir_.c_str(), name(), index_name);
-  rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
-  if (rc != RC::SUCCESS) {
-    delete index;
-    LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
-    return rc;
-  }
+    // 创建索引相关数据
+    BplusTreeIndex *index = new BplusTreeIndex();
+    std::string index_file = index_data_file(base_dir_.c_str(), name(), index_name);
+    rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
+    if (rc != RC::SUCCESS) {
+        delete index;
+        LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
+        return rc;
+    }
 
-  // 遍历当前的所有数据，插入这个索引
-  IndexInserter index_inserter(index);
-  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
-  if (rc != RC::SUCCESS) {
-    // rollback
-    delete index;
-    LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
-    return rc;
-  }
-  indexes_.push_back(index);
+    // 遍历当前的所有数据，插入这个索引
+    IndexInserter index_inserter(index);
+    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
+    if (rc != RC::SUCCESS) {
+        // rollback
+        delete index;
+        LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
+        return rc;
+    }
+    indexes_.push_back(index);
     TableMeta new_table_meta(table_meta_);
     rc = new_table_meta.add_index(new_index_meta);
     if (rc != RC::SUCCESS) {
@@ -622,162 +660,234 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     return rc;
 }
 
-RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
-                        const Condition conditions[], int *updated_count) {
-    // todo: no use of RecodeUpdater; no trx replemented
 
-    RC rc = RC::SUCCESS;
-    CompositeConditionFilter filter;
-    rc = filter.init(*this, conditions, condition_num);
-    if (rc != RC::SUCCESS) {
-        LOG_ERROR("filter init failed");
-        return RC::GENERIC_ERROR;
-    }
-    *updated_count = 0;
-    int limit = INT_MAX;  // no limit
-    Record record;
-    const int normal_field_start_index = table_meta_.sys_field_num();
-    int value_num = table_meta_.field_num() - table_meta_.sys_field_num();
-
-    // find the index of attribute_name in an entry.data
-    int record_size = table_meta_.record_size();
-    int attr_index;
-    for (attr_index = 0; attr_index < value_num; attr_index++) {
-        if (0 == strcmp(table_meta_.field(attr_index + normal_field_start_index)->name(), attribute_name)) {
-            break;
-        }
+class RecordUpdater {
+public:
+    RecordUpdater(Table &table, Trx *trx, const char *attribute_name, const Value *value) :
+            table_(table), trx_(trx), attribute_name_(attribute_name), value_(value) {
     }
 
-    if (value_num <= 0 || nullptr == value ||
-        table_meta_.field(attr_index + normal_field_start_index)->type() != value->type) {
-        LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
-        return RC::INVALID_ARGUMENT;
+    RC update_record(Record *record) {
+        RC rc = RC::SUCCESS;
+        rc = table_.update_record(trx_, record, attribute_name_, value_);
+        if (rc == RC::SUCCESS) {
+            updated_count_++;
+        }
+        return rc;
     }
 
-    // construct index_scanner
-    IndexScanner *index_scanner = find_index_for_scan(&filter);
+    int updated_count() const {
+        return updated_count_;
+    }
 
-    if (index_scanner != nullptr) { // scan by index
-        RID rid;
-        // update each entry
-        while (*updated_count < limit) {
-            rc = index_scanner->next_entry(&rid);
-            if (rc != RC::SUCCESS) {
-                if (RC::RECORD_EOF == rc) {  // finish updating all entries
-                    rc = RC::SUCCESS;
-                    break;
-                }
-                LOG_ERROR("Failed to scan table by index. rc=%d:%s", rc, strrc(rc));
-                break;
-            }
+private:
+    Table &table_;
+    Trx *trx_;
+    const char *attribute_name_;
+    const Value *value_;
+    int updated_count_ = 0;
+};
 
-            // get record
-            rc = record_handler_->get_record(&rid, &record);
-            if (rc != RC::SUCCESS) {
-                LOG_ERROR("Failed to fetch record of rid=%d:%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
-                break;
-            }
+static RC record_reader_update_adapter(Record *record, void *context) {
+    RecordUpdater &record_updater = *(RecordUpdater *) context;
+    return record_updater.update_record(record);
+}
 
-            // a second time filter for check, maybe can delete the last part of this line:
-            if ((trx == nullptr || trx->is_visible(this, &record)) && (filter.filter(record))) {
-                // rc = record_reader(&record, context);
-
-                //construct "new_record" for this entry
-                char *new_record_data = new char[record_size];
-
-                for (int i = 0; i < value_num; i++) {
-                    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-                    if (i == attr_index)  // assign value
-                        memcpy(new_record_data + field->offset(), value->data, field->len());
-                    else              // assign record->data
-                        memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
-                }
-
-                Record new_record;
-                new_record.data = new_record_data;
-                new_record.rid = rid;
-
-                rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-                rc = insert_entry_of_indexes(new_record.data, rid);
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-
-                // update
-                rc = record_handler_->update_record(&new_record);
-
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning3. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-            }
-            (*updated_count)++;
-        }
-        // todo: update index?
-        index_scanner->destroy();
-    } else { // no index, use record file scanner
-        RecordFileScanner scanner;
-        rc = scanner.open_scan(*data_buffer_pool_, file_id_, &filter);
-        if (rc != RC::SUCCESS) {
-            LOG_ERROR("failed to open scanner. file id=%d. rc=%d:%s", file_id_, rc, strrc(rc));
-            return rc;
-        }
-
-        rc = scanner.get_first_record(&record);
-        for (; RC::SUCCESS == rc && (*updated_count) < limit; rc = scanner.get_next_record(&record)) {
-            if (trx == nullptr || trx->is_visible(this, &record)) {
-                //construct "new_record" for this entry
-                char *new_record_data = new char[record_size];
-
-                for (int i = 0; i < value_num; i++) {
-                    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-                    if (i == attr_index)  // assign value
-                        memcpy(new_record_data + field->offset(), value->data, field->len());
-                    else              // assign record->data
-                        memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
-                }
-
-                Record new_record;
-                new_record.data = new_record_data;
-                new_record.rid = record.rid;
-
-
-                rc = delete_entry_of_indexes(record.data, record.rid,
-                                             false);  // if not exist this index, don't return err
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-                rc = insert_entry_of_indexes(new_record.data, record.rid);
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-                // update
-                rc = record_handler_->update_record(&new_record);
-
-                if (rc != RC::SUCCESS) {
-                    LOG_TRACE("Record reader break the table scanning. rc=%d:%s", rc, strrc(rc));
-                    break;
-                }
-            }
-            (*updated_count)++;
-        }
-
-        if (RC::RECORD_EOF == rc) {
-            rc = RC::SUCCESS;
-        } else {
-            LOG_ERROR("failed to scan record. file id=%d, rc=%d:%s", file_id_, rc, strrc(rc));
-        }
-        scanner.close_scan();
+RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute_name, const Value *value,
+                        int *updated_count) {
+    RecordUpdater updater(*this, trx, attribute_name, value);
+    RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
+    if (updated_count != nullptr) {
+        *updated_count = updater.updated_count();
     }
     return rc;
 }
+
+RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, const Value *value) {
+    RC rc = RC::SUCCESS;
+    Record record_new;
+    record_new.rid = record->rid;
+    char *record_data = record->data;
+    const FieldMeta *field = table_meta_.field(attribute_name);
+    if (field == nullptr) {
+        LOG_ERROR("Invalid field name.Wrong field name=%s", attribute_name);
+        return RC::SCHEMA_FIELD_NOT_EXIST;
+    }
+    if (field->type() != value->type) {
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+                  field->name(), field->type(), value->type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+    memcpy(record_data + field->offset(), value->data, field->len());
+    record_new.data = record_data;
+    rc = record_handler_->update_record(&record_new);
+    return rc;
+}
+
+// RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
+//                         const Condition conditions[], int *updated_count) {
+//     // todo: no use of RecodeUpdater; no trx replemented
+
+//     RC rc = RC::SUCCESS;
+//     CompositeConditionFilter filter;
+//     rc = filter.init(*this, conditions, condition_num);
+//     if (rc != RC::SUCCESS) {
+//         LOG_ERROR("filter init failed");
+//         return RC::GENERIC_ERROR;
+//     }
+//     *updated_count = 0;
+//     int limit = INT_MAX;  // no limit
+//     Record record;
+//     const int normal_field_start_index = table_meta_.sys_field_num();
+//     int value_num = table_meta_.field_num() - table_meta_.sys_field_num();
+
+//     // find the index of attribute_name in an entry.data
+//     int record_size = table_meta_.record_size();
+//     int attr_index;
+//     for (attr_index = 0; attr_index < value_num; attr_index++) {
+//         if (0 == strcmp(table_meta_.field(attr_index + normal_field_start_index)->name(), attribute_name)) {
+//             break;
+//         }
+//     }
+
+//     if (value_num <= 0 || nullptr == value ||
+//         table_meta_.field(attr_index + normal_field_start_index)->type() != value->type && NULLS != value->type) {
+//         LOG_ERROR("Invalid argument. value num=%d, value=%p", value_num, value);
+//         return RC::INVALID_ARGUMENT;
+//     }
+
+//     std::string data = (char *)(value->data);
+//     // std::transform(data.begin(), data.end(), ::tolower);
+//     if(data=="!null"){
+//         if (table_meta_.field(attr_index + normal_field_start_index)->nullable()==false){
+//             return RC::CONSTRAINT_NOTNULL;
+//         }
+//     }
+
+//     // construct index_scanner
+//     IndexScanner *index_scanner = find_index_for_scan(&filter);
+
+//     if (index_scanner != nullptr) { // scan by index
+//         RID rid;
+//         // update each entry
+//         while (*updated_count < limit) {
+//             rc = index_scanner->next_entry(&rid);
+//             if (rc != RC::SUCCESS) {
+//                 if (RC::RECORD_EOF == rc) {  // finish updating all entries
+//                     rc = RC::SUCCESS;
+//                     break;
+//                 }
+//                 LOG_ERROR("Failed to scan table by index. rc=%d:%s", rc, strrc(rc));
+//                 break;
+//             }
+
+//             // get record
+//             rc = record_handler_->get_record(&rid, &record);
+//             if (rc != RC::SUCCESS) {
+//                 LOG_ERROR("Failed to fetch record of rid=%d:%d, rc=%d:%s", rid.page_num, rid.slot_num, rc, strrc(rc));
+//                 break;
+//             }
+
+//             // a second time filter for check, maybe can delete the last part of this line:
+//             if ((trx == nullptr || trx->is_visible(this, &record)) && (filter.filter(record))) {
+//                 // rc = record_reader(&record, context);
+
+//                 //construct "new_record" for this entry
+//                 char *new_record_data = new char[record_size];
+
+//                 for (int i = 0; i < value_num; i++) {
+//                     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+//                     if (i == attr_index)  // assign value
+//                         memcpy(new_record_data + field->offset(), value->data, field->len());
+//                     else              // assign record->data
+//                         memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
+//                 }
+
+//                 Record new_record;
+//                 new_record.data = new_record_data;
+//                 new_record.rid = rid;
+
+//                 rc = delete_entry_of_indexes(record.data, rid, false);  // if not exist this index, don't return err
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//                 rc = insert_entry_of_indexes(new_record.data, rid);
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+
+//                 // update
+//                 rc = record_handler_->update_record(&new_record);
+
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning3. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//             }
+//             (*updated_count)++;
+//         }
+//         // todo: update index?
+//         index_scanner->destroy();
+//     } else { // no index, use record file scanner
+//         RecordFileScanner scanner;
+//         rc = scanner.open_scan(*data_buffer_pool_, file_id_, &filter);
+//         if (rc != RC::SUCCESS) {
+//             LOG_ERROR("failed to open scanner. file id=%d. rc=%d:%s", file_id_, rc, strrc(rc));
+//             return rc;
+//         }
+
+//         rc = scanner.get_first_record(&record);
+//         for (; RC::SUCCESS == rc && (*updated_count) < limit; rc = scanner.get_next_record(&record)) {
+//             if (trx == nullptr || trx->is_visible(this, &record)) {
+//                 //construct "new_record" for this entry
+//                 char *new_record_data = new char[record_size];
+
+//                 for (int i = 0; i < value_num; i++) {
+//                     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+//                     if (i == attr_index)  // assign value
+//                         memcpy(new_record_data + field->offset(), value->data, field->len());
+//                     else              // assign record->data
+//                         memcpy(new_record_data + field->offset(), record.data + field->offset(), field->len());
+//                 }
+
+//                 Record new_record;
+//                 new_record.data = new_record_data;
+//                 new_record.rid = record.rid;
+
+
+//                 rc = delete_entry_of_indexes(record.data, record.rid,
+//                                              false);  // if not exist this index, don't return err
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning1. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//                 rc = insert_entry_of_indexes(new_record.data, record.rid);
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning2. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//                 // update
+//                 rc = record_handler_->update_record(&new_record);
+
+//                 if (rc != RC::SUCCESS) {
+//                     LOG_TRACE("Record reader break the table scanning. rc=%d:%s", rc, strrc(rc));
+//                     break;
+//                 }
+//             }
+//             (*updated_count)++;
+//         }
+
+//         if (RC::RECORD_EOF == rc) {
+//             rc = RC::SUCCESS;
+//         } else {
+//             LOG_ERROR("failed to scan record. file id=%d, rc=%d:%s", file_id_, rc, strrc(rc));
+//         }
+//         scanner.close_scan();
+//     }
+//     return rc;
+// }
 
 class RecordDeleter {
 public:
@@ -809,12 +919,12 @@ static RC record_reader_delete_adapter(Record *record, void *context) {
 }
 
 RC Table::delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count) {
-  RecordDeleter deleter(*this, trx);
-  RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter);
-  if (deleted_count != nullptr) {
-    *deleted_count = deleter.deleted_count();
-  }
-  return rc;
+    RecordDeleter deleter(*this, trx);
+    RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter);
+    if (deleted_count != nullptr) {
+        *deleted_count = deleter.deleted_count();
+    }
+    return rc;
 /*
     RecordDeleter deleter(*this, trx);
     RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter);
@@ -874,7 +984,7 @@ RC Table::rollback_delete(Trx *trx, const RID &rid) {
 
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid) {
     RC rc = RC::SUCCESS;
-    for (Index *index : indexes_) {
+    for (Index *index: indexes_) {
         rc = index->insert_entry(record, &rid);
         if (rc != RC::SUCCESS) {
             break;
@@ -885,7 +995,7 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid) {
 
 RC Table::delete_entry_of_indexes(const char *record, const RID &rid, bool error_on_not_exists) {
     RC rc = RC::SUCCESS;
-    for (Index *index : indexes_) {
+    for (Index *index: indexes_) {
         rc = index->delete_entry(record, &rid);
         if (rc != RC::SUCCESS) {
             if (rc != RC::RECORD_INVALID_KEY || !error_on_not_exists) {
@@ -982,93 +1092,8 @@ RC Table::sync() {
     return rc;
 }
 
-// see : https://stackoverflow.com/questions/9435385/split-a-string-using-c11
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::stringstream ss(s);
-    std::string item;
-    std::vector<std::string> elems;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
-    }
-    return elems;
-}
-
-bool Table::isValidDate(char *date) {
-    const std::vector<std::string> &dates = split(date, '-');
-    if (dates.size() != 3) {
-        LOG_ERROR("Failed to parser date filed");
-        return false;
-    }
-    int year_len = 4, month_len = 2, day_len = 2;
-    // 1. judge year
-    if (dates[0].size() < year_len) {
-        std::string str = dates[0];
-        int diff = year_len - dates[0].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff, date, strlen(date) + diff);
-        for (int i = 0; i < diff; i++) {
-            date[i] = str[i];
-        }
-    }
-    if (dates[1].size() < month_len) {
-        std::string str = dates[1];
-        int diff = month_len - dates[1].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff + year_len + 1, date + year_len + 1, strlen(date) + diff);
-        for (int i = 0; i < month_len; i++) {
-            date[year_len + 1 + i] = str[i];
-        }
-    }
-    if (dates[2].size() < day_len) {
-        std::string str = dates[2];
-        int diff = 2 - dates[2].size();
-        for (int i = 0; i < diff; i++) {
-            str = "0" + str;
-        }
-        memmove(date + diff + 8, date + 8, strlen(date) + diff);
-        for (int i = 0; i < 2; i++) {
-            date[8 + i] = str[i];
-        }
-    }
-    int year = atoi(dates[0].c_str());
-    bool isLeap = (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
-    if (year > 2038) {
-        LOG_ERROR("year is should not bigger than 2038!");
-        return false;
-    }
-    int month = atoi(dates[1].c_str());
-    int day = atoi(dates[2].c_str());
-    if (year == 2038 && month > 2) {
-        LOG_ERROR("if year == 2038, month is should not bigger than 2");
-        return false;
-    }
-    if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 11 || month == 12) {
-        if (day <= 0 || day > 31) {
-            LOG_ERROR("%d month has %d day is should not bigger than 31 or smaller than 0", month, day);
-            return false;
-        }
-    } else if (month == 2) {
-        if (day <= 0 || day > 28 + isLeap) {
-            LOG_ERROR(
-                    "%d year leap state is  %d . so %d month is should not have bigger than 28 (29) or smaller than 0 days",
-                    year, isLeap, month);
-            return false;
-        }
-    } else {
-        if (day <= 0 || day > 30) {
-            LOG_ERROR("%d month is should not have bigger than 30 or smaller than 0 days", month);
-            return false;
-        }
-    }
-    return true;
-}
-
 bool Table::insert_unique_conflict(const char *record) {
-    for (const auto index : indexes_) {
+    for (const auto index: indexes_) {
         if (index->index_meta().unique()) {
             std::string key = record + index->field_meta().offset();
             if (index->unique_conflict(key)) {

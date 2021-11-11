@@ -19,54 +19,6 @@ See the Mulan PSL v2 for more details. */
 #include <functional>
 #include "sql/parser/parse_defs.h"
 #include "functional"
-std::vector<std::string> split_date(const std::string &s, char delim) {
-    std::stringstream ss(s);
-    std::string item;
-    std::vector<std::string> elems;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(std::move(item)); // in C++11 (based on comment from @mchiasson)
-    }
-    return elems;
-}
-// is a function to compare date
-// if str_l == str_r return 0
-// if str_l > str_r return 1
-// if srt_l < str_r return -1
-int cmp_date (const char *l, const char *r) {
-    const std::vector<std::string> &l_value = split_date(l, '-');
-    const std::vector<std::string> &r_value = split_date(r, '-');
-    // 1. compare year
-    int l_year = atoi(l_value[0].c_str());
-    int r_year = atoi(r_value[0].c_str());
-    if (l_year != r_year) {
-        if (l_year > r_year) {
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    // 2. compare month
-    int l_month = atoi(l_value[1].c_str());
-    int r_month = atoi(r_value[1].c_str());
-    if (l_month != r_month) {
-        if (l_month > r_month) {
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    // 3. compare day
-    int l_day = atoi(l_value[2].c_str());
-    int r_day = atoi(r_value[2].c_str());
-    if (l_day != r_day) {
-        if (l_day > r_day) {
-            return 1;
-        } else {
-            return -1;
-        }
-    }
-    return 0;
-};
 
 int float_compare(float f1, float f2) {
     float result = f1 - f2;
@@ -238,9 +190,14 @@ int CompareKey(const char *pdata, const char *pkey, AttrType attr_type, int attr
             return strncmp(s1, s2, attr_length);
         }
         case DATES: {
-            s1 = pdata;
-            s2 = pkey;
-            return cmp_date(s1, s2);
+            i1 = *(int *) pdata;
+            i2 = *(int *) pkey;
+            if (i1 > i2)
+                return 1;
+            if (i1 < i2)
+                return -1;
+            if (i1 == i2)
+                return 0;
         }
             break;
         default: {
@@ -1608,7 +1565,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
     RC rc;
     int i, tmp;
     RID rid;
-    if (compop == LESS_THAN || compop == LESS_EQUAL || compop == NOT_EQUAL) {
+    if (compop == LESS_THAN || compop == LESS_EQUAL || compop == NOT_EQUAL || compop == IS_NOT_COMPOP) {
         rc = get_first_leaf_page(page_num);
         if (rc != SUCCESS) {
             return rc;
@@ -1649,7 +1606,7 @@ RC BplusTreeHandler::find_first_index_satisfied(CompOp compop, const char *key, 
         for (i = 0; i < node->key_num; i++) {
             tmp = CompareKey(node->keys + i * file_header_.key_length, key, file_header_.attr_type,
                              file_header_.attr_length);
-            if (compop == EQUAL_TO || compop == GREAT_EQUAL) {
+            if (compop == EQUAL_TO || compop == GREAT_EQUAL || compop == IS_COMPOP) {
                 if (tmp >= 0) {
                     rc = disk_buffer_pool_->get_page_num(&page_handle, page_num);
                     if (rc != SUCCESS) {
@@ -1881,142 +1838,176 @@ bool BplusTreeScanner::satisfy_condition(const char *pkey) {
         return true;
     }
 
-    AttrType attr_type = index_handler_.file_header_.attr_type;
-    switch (attr_type) {
-        case INTS:
-            i1 = *(int *) pkey;
-            i2 = *(int *) value_;
-            break;
-        case FLOATS:
-            f1 = *(float *) pkey;
-            f2 = *(float *) value_;
-            break;
-        case CHARS:
-            s1 = pkey;
-            s2 = value_;
-            break;
-        case DATES:
-            s1 = pkey;
-            s2 = value_;
-            break;
-        default:
-            LOG_PANIC("Unknown attr type: %d", attr_type);
-    }
+    bool left_is_null = (*pkey == '!');
+    bool right_is_null = (*value_ == '!');
 
-    bool flag = false;
+    if (left_is_null && right_is_null) {  // null comop null
+        if (comp_op_ == IS_COMPOP) {   // is
+            return true;
+        } else if (comp_op_ == IS_NOT_COMPOP) {   // is not
+            return false;
+        } else {     // >=、noop
+            return false;
+        }
+    } else if (left_is_null) {  // null comop (value/id,anything not null)
+        if (comp_op_ <= 7) {  // >=、noop
+            return false;
+        } else if (comp_op_ == IS_COMPOP) { // is
+            return false;
+        } else if (comp_op_ == IS_NOT_COMPOP) {  // is not
+            return true;
+        } else {
+            LOG_PANIC("Never should print this.");
+        }
+    } else if (right_is_null) {   // (value/id,anything not null) compop null
+        if (comp_op_ <= 7) {  // >=、noop
+            return false;
+        } else if (comp_op_ == IS_COMPOP) {  // is
+            return false;
+        } else if (comp_op_ == IS_NOT_COMPOP) { // isnot
+            return true;
+        } else {
+            LOG_PANIC("Never should print this.");
+        }
+    } else {  // notnull comop notnull
 
-    int attr_length = index_handler_.file_header_.attr_length;
-    switch (comp_op_) {
-        case EQUAL_TO:
-            switch (attr_type) {
-                case INTS:
-                    flag = (i1 == i2);
-                    break;
-                case FLOATS:
-                    flag = 0 == float_compare(f1, f2);
-                    break;
-                case CHARS:
-                    flag = (strncmp(s1, s2, attr_length) == 0);
-                    break;
-                case DATES:
-                    flag = cmp_date(s1, s2) == 0;
-                    break;
-                default:
-                    LOG_PANIC("Unknown attr type: %d", attr_type);
-            }
-            break;
-        case LESS_THAN:
-            switch (attr_type) {
-                case INTS:
-                    flag = (i1 < i2);
-                    break;
-                case FLOATS:
-                    flag = (f1 < f2);
-                    break;
-                case CHARS:
-                    flag = (strncmp(s1, s2, attr_length) < 0);
-                    break;
-                case DATES:
-                    flag = cmp_date(s1, s2) < 0;
-                    break;
-                default:
-                    LOG_PANIC("Unknown attr type: %d", attr_type);
-            }
-            break;
-        case GREAT_THAN:
-            switch (attr_type) {
-                case INTS:
-                    flag = (i1 > i2);
-                    break;
-                case FLOATS:
-                    flag = (f1 > f2);
-                    break;
-                case CHARS:
-                    flag = (strncmp(s1, s2, attr_length) > 0);
-                    break;
-                case DATES:
-                    flag = cmp_date(s1, s2) > 0;
-                    break;
-                default:
-                    LOG_PANIC("Unknown attr type: %d", attr_type);
-            }
-            break;
-        case LESS_EQUAL:
-            switch (attr_type) {
-                case INTS:
-                    flag = (i1 <= i2);
-                    break;
-                case FLOATS:
-                    flag = (f1 <= f2);
-                    break;
-                case CHARS:
-                    flag = (strncmp(s1, s2, attr_length) <= 0);
-                    break;
-                case DATES:
-                    flag = cmp_date(s1, s2) <= 0;
-                    break;
-                default:
-                    LOG_PANIC("Unknown attr type: %d", attr_type);
-            }
-            break;
-        case GREAT_EQUAL:
-            switch (attr_type) {
-                case INTS:
-                    flag = (i1 >= i2);
-                    break;
-                case FLOATS:
-                    flag = (f1 >= f2);
-                    break;
-                case CHARS:
-                    flag = (strncmp(s1, s2, attr_length) >= 0);
-                    break;
-                case DATES:
-                    flag = cmp_date(s1, s2) >= 0;
-                    break;
-                default:
-                    LOG_PANIC("Unknown attr type: %d", attr_type);
-            }
-            break;
-        case NOT_EQUAL:
-            switch (attr_type) {
-                case INTS:
-                    flag = (i1 != i2);
-                    break;
-                case FLOATS:
-                    flag = 0 != float_compare(f1, f2);
-                    break;
-                case CHARS:
-                    flag = (strncmp(s1, s2, attr_length) != 0);
-                    break;
-                case DATES:
-                    flag = cmp_date(s1, s2) != 0;
-                    break;
-                default:
-                    LOG_PANIC("Unknown attr type: %d", attr_type);
-            }
-            break;
-        default:
-            LOG_PANIC("Unknown comp op: %d", comp_op_);
+        AttrType attr_type = index_handler_.file_header_.attr_type;
+        switch (attr_type) {
+            case INTS:
+                i1 = *(int *) pkey;
+                i2 = *(int *) value_;
+                break;
+            case FLOATS:
+                f1 = *(float *) pkey;
+                f2 = *(float *) value_;
+                break;
+            case CHARS:
+                s1 = pkey;
+                s2 = value_;
+                break;
+            case DATES:
+                i1 = *(int *) pkey;
+                i2 = *(int *) value_;
+                break;
+            default:
+                LOG_PANIC("Unknown attr type: %d", attr_type);
+        }
+
+        bool flag = false;
+
+        int attr_length = index_handler_.file_header_.attr_length;
+        switch (comp_op_) {
+            case EQUAL_TO:
+                switch (attr_type) {
+                    case INTS:
+                        flag = (i1 == i2);
+                        break;
+                    case FLOATS:
+                        flag = 0 == float_compare(f1, f2);
+                        break;
+                    case CHARS:
+                        flag = (strncmp(s1, s2, attr_length) == 0);
+                        break;
+                    case DATES:
+                        flag = (i1 == i2);
+                        break;
+                    default:
+                        LOG_PANIC("Unknown attr type: %d", attr_type);
+                }
+                break;
+            case LESS_THAN:
+                switch (attr_type) {
+                    case INTS:
+                        flag = (i1 < i2);
+                        break;
+                    case FLOATS:
+                        flag = (f1 < f2);
+                        break;
+                    case CHARS:
+                        flag = (strncmp(s1, s2, attr_length) < 0);
+                        break;
+                    case DATES:
+                        flag = (i1 < i2);
+                        break;
+                    default:
+                        LOG_PANIC("Unknown attr type: %d", attr_type);
+                }
+                break;
+            case GREAT_THAN:
+                switch (attr_type) {
+                    case INTS:
+                        flag = (i1 > i2);
+                        break;
+                    case FLOATS:
+                        flag = (f1 > f2);
+                        break;
+                    case CHARS:
+                        flag = (strncmp(s1, s2, attr_length) > 0);
+                        break;
+                    case DATES:
+                        flag = (i1 > i2);
+                        break;
+                    default:
+                        LOG_PANIC("Unknown attr type: %d", attr_type);
+                }
+                break;
+            case LESS_EQUAL:
+                switch (attr_type) {
+                    case INTS:
+                        flag = (i1 <= i2);
+                        break;
+                    case FLOATS:
+                        flag = (f1 <= f2);
+                        break;
+                    case CHARS:
+                        flag = (strncmp(s1, s2, attr_length) <= 0);
+                        break;
+                    case DATES:
+                        flag = (i1 <= i2);
+                        break;
+                    default:
+                        LOG_PANIC("Unknown attr type: %d", attr_type);
+                }
+                break;
+            case GREAT_EQUAL:
+                switch (attr_type) {
+                    case INTS:
+                        flag = (i1 >= i2);
+                        break;
+                    case FLOATS:
+                        flag = (f1 >= f2);
+                        break;
+                    case CHARS:
+                        flag = (strncmp(s1, s2, attr_length) >= 0);
+                        break;
+                    case DATES:
+                        flag = (i1 >= i2);
+                        break;
+                    default:
+                        LOG_PANIC("Unknown attr type: %d", attr_type);
+                }
+                break;
+            case NOT_EQUAL:
+                switch (attr_type) {
+                    case INTS:
+                        flag = (i1 != i2);
+                        break;
+                    case FLOATS:
+                        flag = 0 != float_compare(f1, f2);
+                        break;
+                    case CHARS:
+                        flag = (strncmp(s1, s2, attr_length) != 0);
+                        break;
+                    case DATES:
+                        flag = (i1 >= i2);
+                        break;
+                    default:
+                        LOG_PANIC("Unknown attr type: %d", attr_type);
+                }
+                break;
+            default:
+                LOG_PANIC("Unknown comp op: %d", comp_op_);
+        }
+        return flag;
     }
-    return flag;
 }
