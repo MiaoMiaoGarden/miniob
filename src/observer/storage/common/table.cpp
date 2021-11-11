@@ -385,7 +385,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
             char *name = "text";
             std::string path = name;
             std::ofstream fout(
-                    "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta_.name())) + "_" + std::to_string(key) + "_" +
+                    "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta_.name())) + "_" +
+                    std::to_string(key) + "_" +
                     path + ".txt");
             if (fout) {
                 //将out流转换为string类型，写入到文件流中
@@ -713,10 +714,25 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
         LOG_ERROR("Invalid field name.Wrong field name=%s", attribute_name);
         return RC::SCHEMA_FIELD_NOT_EXIST;
     }
-    if (field->type() != value->type) {
+    if (field->type() != value->type && !(field->type() == TEXTS && value->type == CHARS)) {
         LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
                   field->name(), field->type(), value->type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+    if (field->type() == TEXTS) {
+        int num = *(int *) (record_data + field->offset());
+        // value->data 写入文件
+        // value->data 赋值文件名
+        std::string path =
+                "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta_.name())) + "_" + std::to_string(num) +
+                "_" + "text.txt";
+        std::ofstream fout(path, std::ios::trunc);
+        fout << static_cast<char *>(value->data);
+        memcpy(record_data + field->offset(), static_cast<void *>(&num), field->len());
+        record_new.data = record_data;
+        rc = record_handler_->update_record(&record_new);
+        return rc;
+
     }
     memcpy(record_data + field->offset(), value->data, field->len());
     record_new.data = record_data;
