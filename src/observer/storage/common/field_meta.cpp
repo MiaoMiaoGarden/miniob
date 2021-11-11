@@ -33,7 +33,7 @@ const char *ATTR_TYPE_NAME[] = {
 };
 
 const char *attr_type_to_string(AttrType type) {
-  if (type >= UNDEFINED && type <= DATES) {
+  if (type >= UNDEFINED && type <= TEXTS) {
       printf("type %d", type);
     return ATTR_TYPE_NAME[type];
   }
