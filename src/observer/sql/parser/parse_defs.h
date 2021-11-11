@@ -50,7 +50,8 @@ typedef enum {
     INTS,
     FLOATS,
     DATES,
-    NULLS  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
+    NULLS,  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
+    TEXTS,
 } AttrType;
 
 typedef enum {
@@ -224,6 +225,7 @@ void value_init_float_float(Value *value, float v);
 
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);
+void value_init_text(Value *value, const char *v);
 void value_init_null(Value *value);
 void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby);
 

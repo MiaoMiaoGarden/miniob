@@ -67,6 +67,9 @@ void Tuple::add(int value, bool flag) {
         add(new DateValue(value));
 }
 
+void Tuple::add(std::string &text) {
+    add(new TEXTValue(text));
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {
@@ -495,7 +498,8 @@ void TupleRecordConverter::add_record(const char *record) {
                 tuple.add(value);
             }
                 break;
-            case CHARS: {
+            case CHARS:
+            {
                 const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
                 tuple.add(s, strlen(s));
             }
@@ -505,6 +509,12 @@ void TupleRecordConverter::add_record(const char *record) {
                 tuple.add(value, true);
             }
                 break;
+            case TEXTS: {
+                int num = *(int *) (record + field_meta->offset());
+                std:: string path = "./" + std::string(const_cast<char *>(table_meta.name())) + "_" + std::to_string(num) + "_" + "text.txt";
+                tuple.add(path);
+            }
+
             default: {
                 LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
             }
