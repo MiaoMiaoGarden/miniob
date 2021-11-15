@@ -105,34 +105,42 @@ void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby) {
 }
 
 void condition_init(Condition *condition, CompOp comp,
-                    int left_is_attr, RelAttr *left_attr, Value *left_value,
-                    int right_is_attr, RelAttr *right_attr, Value *right_value) {
+                    int left_type, Value *left_value, RelAttr *left_attr, char* left_subselect,
+                    int right_type, Value *right_value, RelAttr *right_attr, char* right_subselect) {
     condition->comp = comp;
-    condition->left_is_attr = left_is_attr;
-    if (left_is_attr) {
+    condition->left_type = LRType(left_type);
+    if (left_type == 0) {
+        condition->left_value = *left_value;
+    } else if (left_type == 1) {
         condition->left_attr = *left_attr;
     } else {
-        condition->left_value = *left_value;
+        condition->left_subselect = left_subselect;
     }
 
-    condition->right_is_attr = right_is_attr;
-    if (right_is_attr) {
+    condition->right_type = LRType(right_type);
+    if (right_type == 0) {
+        condition->right_value = *right_value;
+    } else if (right_type == 1) {
         condition->right_attr = *right_attr;
     } else {
-        condition->right_value = *right_value;
+        condition->right_subselect = right_subselect;
     }
 }
 
 void condition_destroy(Condition *condition) {
-    if (condition->left_is_attr) {
+    if (condition->left_type == VALUE) {
+        value_destroy(&condition->left_value);
+    } else if (condition->left_type == ATTR) {
         relation_attr_destroy(&condition->left_attr);
     } else {
-        value_destroy(&condition->left_value);
+        free(&condition->left_subselect);
     }
-    if (condition->right_is_attr) {
+    if (condition->right_type == VALUE) {
+        value_destroy(&condition->right_value);
+    } else if (condition->right_type == ATTR) {
         relation_attr_destroy(&condition->right_attr);
     } else {
-        value_destroy(&condition->right_value);
+        free(&condition->right_subselect);
     }
 }
 
@@ -318,6 +326,10 @@ void create_index_destroy(CreateIndex *create_index) {
     }
     create_index->attribute_num = 0;
     create_index->relation_name = nullptr;
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 629c1767cb6125b1529e01f4beb6610da2ec5a5a
 }
 
 void drop_index_init(DropIndex *drop_index, const char *index_name) {

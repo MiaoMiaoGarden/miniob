@@ -39,7 +39,7 @@ protected:
                      common::CallbackContext *context) override;
 
   void handle_request(common::StageEvent *event);
-  RC do_select(const char *db, Query *sql, SessionEvent *session_event);
+  RC do_select(const char *db, Query *sql, SessionEvent *session_event, TupleSet *ret_tupleset);
   RC gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map,
                 const Selects &selects, TupleSchema &output_scheam);
   RC do_aggregate(const Selects &selects, TupleSet &tuple_set, TupleSet &aggred_tupleset);

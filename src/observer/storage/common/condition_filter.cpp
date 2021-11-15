@@ -43,7 +43,7 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
         return RC::INVALID_ARGUMENT;
     }
 
-    if (comp_op < EQUAL_TO || comp_op > IS_NOT_COMPOP || comp_op == NO_OP) {
+    if (comp_op < EQUAL_TO || comp_op > NOTIN_COMPOP || comp_op == NO_OP) {
         LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
         return RC::INVALID_ARGUMENT;
     }
@@ -58,12 +58,14 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
 RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
     const TableMeta &table_meta = table.table_meta();
     ConDesc left;
+    left.value_tuple_size = 0;
     ConDesc right;
+    right.value_tuple_size = 0;
 
     AttrType type_left = UNDEFINED;
     AttrType type_right = UNDEFINED;
 
-    if (1 == condition.left_is_attr) {
+    if (ATTR == condition.left_type) {
         left.is_attr = true;
         const FieldMeta *field_left = table_meta.field(condition.left_attr.attribute_name);
         if (nullptr == field_left) {
@@ -78,19 +80,28 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
 
         type_left = field_left->type();
     } else {
-        left.is_attr = false;
-        left.value = condition.left_value.data;  // 校验type 或者转换类型
         type_left = condition.left_value.type;
-        char *left_value = (char *) (left.value);
-        if (*left_value == '!') {
-            type_left = NULLS;
+        left.is_attr = false;
+        if (condition.left_value.data != nullptr){
+            left.value = condition.left_value.data;
+            char *left_value = (char *) (left.value);
+            if (*left_value == '!') {
+                type_left = NULLS;
+            }
+        } else if (condition.left_value.tuple_data_size != 0){
+            left.value = nullptr;
+            for(int i = 0; i < condition.left_value.tuple_data_size; i++) {
+                left.value_tuple[left.value_tuple_size++] = condition.left_value.tuple_data[i];
+            }
+        } else {
+            return RC::EMPTY;
         }
 
         left.attr_length = 0;
         left.attr_offset = 0;
     }
 
-    if (1 == condition.right_is_attr) {
+    if (ATTR == condition.right_type) {
         right.is_attr = true;
         const FieldMeta *field_right = table_meta.field(condition.right_attr.attribute_name);
         if (nullptr == field_right) {
@@ -105,11 +116,20 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         right.value = nullptr;
     } else {
         right.is_attr = false;
-        right.value = condition.right_value.data;
         type_right = condition.right_value.type;
-        char *right_value = (char *) (right.value);
-        if (*right_value == '!') {
-            type_right = NULLS;
+        if (condition.right_value.data != nullptr){
+            right.value = condition.right_value.data;
+            char *right_value = (char *) (right.value);
+            if (*right_value == '!') {
+                type_right = NULLS;
+            }
+        } else if (condition.right_value.tuple_data_size != 0){
+            right.value = nullptr;
+            for(int i = 0; i < condition.right_value.tuple_data_size; i++) {
+                right.value_tuple[right.value_tuple_size++] = condition.right_value.tuple_data[i];
+            }
+        } else {
+            return RC::EMPTY;
         }
 
         right.attr_length = 0;
@@ -141,17 +161,71 @@ std::vector<std::string> split_(const std::string &s, char delim) {
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const {
+    if (!left_.is_attr && left_.value == nullptr) {
+        if (comp_op_ == IN_COMPOP) {
+            bool ans = false;
+            for (int i = 0; i < left_.value_tuple_size; i++) {
+                if (filter_composed(rec, EQUAL_TO, left_.value_tuple[i], nullptr)) {
+                    ans = true;
+                    break;
+                }
+            }
+            return ans;
+        }
+        else if (comp_op_ == NOTIN_COMPOP) {
+            bool ans = true;
+            for (int i = 0; i < left_.value_tuple_size; i++) {
+                if (filter_composed(rec, EQUAL_TO, left_.value_tuple[i], nullptr)) {
+                    ans = false;
+                    break;
+                }
+            }
+            return ans;
+        } else return false;
+    }
+
+    if (!right_.is_attr && right_.value == nullptr) {
+        if (comp_op_ == IN_COMPOP) {
+            bool ans = false;
+            for (int i = 0; i < right_.value_tuple_size; i++) {
+                if (filter_composed(rec, EQUAL_TO, nullptr, right_.value_tuple[i])) {
+                    ans = true;
+                    break;
+                }
+            }
+            return ans;
+        }
+        else if (comp_op_ == NOTIN_COMPOP) {
+            bool ans = true;
+            for (int i = 0; i < right_.value_tuple_size; i++) {
+                if (filter_composed(rec, EQUAL_TO, nullptr, right_.value_tuple[i])) {
+                    ans = false;
+                    break;
+                }
+            }
+            return ans;
+        } else return false;
+    }
+
+    return filter_composed(rec, comp_op_, nullptr, nullptr);
+}
+
+bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, void* left_composed_value, void *right_composed_value) const {
     char *left_value = nullptr;
     char *right_value = nullptr;
 
     if (left_.is_attr) {  // value
         left_value = (char *) (rec.data + left_.attr_offset);
+    } else if (left_composed_value) {
+        left_value = (char *) left_composed_value;
     } else {
         left_value = (char *) left_.value;
     }
 
     if (right_.is_attr) {
         right_value = (char *) (rec.data + right_.attr_offset);
+    } else if (right_composed_value) {
+        right_value = (char *) right_composed_value;
     } else {
         right_value = (char *) right_.value;
     }
@@ -161,29 +235,29 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
     bool right_is_null = (*right_value == '!');
 
     if (left_is_null && right_is_null) {  // null comop null
-        if (comp_op_ == IS_COMPOP) {   // is
+        if (comp_op == IS_COMPOP) {   // is
             return true;
-        } else if (comp_op_ == IS_NOT_COMPOP) {   // is not
+        } else if (comp_op == IS_NOT_COMPOP) {   // is not
             return false;
         } else {     // >=、noop
             return false;
         }
     } else if (left_is_null) {  // null comop (value/id,anything not null)
-        if (comp_op_ <= 7) {  // >=、noop
+        if (comp_op <= 7) {  // >=、noop
             return false;
-        } else if (comp_op_ == IS_COMPOP) { // is
+        } else if (comp_op == IS_COMPOP) { // is
             return false;
-        } else if (comp_op_ == IS_NOT_COMPOP) {  // is not
+        } else if (comp_op == IS_NOT_COMPOP) {  // is not
             return true;
         } else {
             LOG_PANIC("Never should print this.");
         }
     } else if (right_is_null) {   // (value/id,anything not null) compop null
-        if (comp_op_ <= 7) {  // >=、noop
+        if (comp_op <= 7) {  // >=、noop
             return false;
-        } else if (comp_op_ == IS_COMPOP) {  // is
+        } else if (comp_op == IS_COMPOP) {  // is
             return false;
-        } else if (comp_op_ == IS_NOT_COMPOP) { // isnot
+        } else if (comp_op == IS_NOT_COMPOP) { // isnot
             return true;
         } else {
             LOG_PANIC("Never should print this.");
@@ -219,7 +293,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
             default: {
             }
         }
-        switch (comp_op_) {
+        switch (comp_op) {
             case EQUAL_TO:
                 return 0 == cmp_result;
             case LESS_EQUAL:
@@ -291,11 +365,15 @@ RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int
     return init((const ConditionFilter **) condition_filters, condition_num, true);
 }
 
-bool CompositeConditionFilter::filter(const Record &rec) const {
+bool CompositeConditionFilter::filter_composed(const Record &rec, CompOp comp_op, void* left_composed_value, void *right_composed_value) const {
     for (int i = 0; i < filter_num_; i++) {
         if (!filters_[i]->filter(rec)) {
             return false;
         }
     }
     return true;
+}
+
+bool CompositeConditionFilter::filter(const Record &rec) const {
+    return filter_composed(rec, NO_OP, nullptr, nullptr);
 }

@@ -213,14 +213,19 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
             int updated_count = 0;
             if (updates.value.type == DATES && !isValidDate(*((int *) updates.value.data)))
                 rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+<<<<<<< HEAD
+            for (int i = 0; i < updates.condition_num; i++) {
+                if (VALUE == updates.conditions[i].left_type &&
+=======
             for (int i = 0; i < (int)updates.condition_num; i++) {
                 if (!updates.conditions[i].left_is_attr &&
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
                     updates.conditions[i].left_value.type == DATES &&
                     !isValidDate(*((int *) updates.conditions[i].left_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
                     break;
                 }
-                if (!updates.conditions[i].right_is_attr &&
+                if (VALUE == updates.conditions[i].right_type &&
                     updates.conditions[i].right_value.type == DATES &&
                     !isValidDate(*((int *) updates.conditions[i].right_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -238,14 +243,19 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
             const Deletes &deletes = sql->sstr.deletion;
             const char *table_name = deletes.relation_name;
             int deleted_count = 0;
+<<<<<<< HEAD
+            for (int i = 0; i < deletes.condition_num; i++) {
+                if (VALUE == deletes.conditions[i].left_type &&
+=======
             for (int i = 0; i < (int)deletes.condition_num; i++) {
                 if (!deletes.conditions[i].left_is_attr &&
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
                     deletes.conditions[i].left_value.type == DATES &&
                     !isValidDate(*((int *) deletes.conditions[i].left_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
                     break;
                 }
-                if (!deletes.conditions[i].right_is_attr &&
+                if (VALUE == deletes.conditions[i].right_type &&
                     deletes.conditions[i].right_value.type == DATES &&
                     !isValidDate(*((int *) deletes.conditions[i].right_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;

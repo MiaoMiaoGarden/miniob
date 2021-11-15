@@ -151,7 +151,7 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
 
     switch (sql->flag) {
         case SCF_SELECT: { // select
-            do_select(current_db, sql, exe_event->sql_event()->session_event());
+            do_select(current_db, sql, exe_event->sql_event()->session_event(), nullptr);
             exe_event->done_immediate();
         }
         break;
@@ -274,18 +274,18 @@ bool is_valid_date(int date) {
 }
 // 这里没有对输入的某些信息做合法性校验，比如查询的列名、where条件中的列名等，没有做必要的合法性校验
 // 需要补充上这一部分. 校验部分也可以放在resolve，不过跟execution放一起也没有关系
-RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_event) {
+RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_event, TupleSet *ret_tupleset) {
     RC rc = RC::SUCCESS;
     Session *session = session_event->get_client()->session;
     Trx *trx = session->current_trx();
-    const Selects &selects = sql->sstr.selection;
+    const Selects &select_raw = sql->sstr.selection;
     char response[256];
 
     //把 tables_map 放到 ExecuteStage 里面是不是更好一点，起到缓存作用
     std::unordered_map<std::string, Table*> tables_map;
-    int relation_num = selects.relation_num;
+    int relation_num = select_raw.relation_num;
     for (int i = 0; i < relation_num; i++) {
-        const char *table_name = selects.relations[i];
+        const char *table_name = select_raw.relations[i];
         Table *table = DefaultHandler::get_default().find_table(db, table_name);
         if (table == nullptr) {
             LOG_WARN("No such table [%s] in db [%s]", table_name, db);
@@ -298,15 +298,72 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         tables_map[table_name1] = table;
     }
 
-    int condition_num = selects.condition_num;
+    int condition_num = select_raw.condition_num;
     for(int i = 0; i < condition_num; i++) {
-        if(!selects.conditions[i].left_is_attr &&
+        if(select_raw.conditions[i].left_type == SUBSELECTION) {
+            Query *subselection = (Query *) malloc(sizeof(Query));
+            char *subselect_raw = select_raw.conditions[i].left_subselect;
+            std::string subselect_string(subselect_raw+1);
+            subselect_string[strlen(subselect_raw)-1] = ';';
+            RC ret = parse(subselect_string.c_str(), subselection);
+            if (ret != RC::SUCCESS) {
+                return ret;
+            }
+            TupleSet *subselection_res = new TupleSet();
+            do_select(db, subselection, session_event, subselection_res);
+            sql->sstr.selection.conditions[i].left_type = VALUE;
+            sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
+            if(subselection_res->is_empty()){
+                sql->sstr.selection.conditions[i].right_value.type = NULLS;
+                sql->sstr.selection.conditions[i].left_value.data = nullptr;
+            } else if (subselection_res->size()==1) {
+                sql->sstr.selection.conditions[i].left_value.data = const_cast<void*>(subselection_res->get(0).get(0).get_value_pointer());
+            } else {
+                for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
+                    sql->sstr.selection.conditions[i].left_value.data = nullptr;
+                    sql->sstr.selection.conditions[i].left_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
+                }
+                sql->sstr.selection.conditions[i].left_value.tuple_data_size = subselection_res->size();
+            }
+        }
+        if(select_raw.conditions[i].right_type == SUBSELECTION) {
+            // solve_subselection(&(sql->sstr.selection.conditions[i]), 1);
+            Query *subselection = (Query *) malloc(sizeof(Query));
+            char *subselect_raw = select_raw.conditions[i].right_subselect;
+            std::string subselect_string(subselect_raw+1);
+            subselect_string[strlen(subselect_raw)-2] = ';';
+            RC ret = parse(subselect_string.c_str(), subselection);
+            if (ret != RC::SUCCESS) {
+                return ret;
+            }
+            TupleSet *subselection_res = new TupleSet();
+            do_select(db, subselection, session_event, subselection_res);
+            sql->sstr.selection.conditions[i].right_type = VALUE;
+            sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
+            if(subselection_res->is_empty()){
+                sql->sstr.selection.conditions[i].right_value.type = NULLS;
+                sql->sstr.selection.conditions[i].right_value.data = nullptr;
+            } else if (subselection_res->size()==1) {
+                sql->sstr.selection.conditions[i].right_value.data = const_cast<void*>(subselection_res->get(0).get(0).get_value_pointer());
+            } else {
+                for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
+                    sql->sstr.selection.conditions[i].right_value.data = nullptr;
+                    sql->sstr.selection.conditions[i].right_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
+                }
+                sql->sstr.selection.conditions[i].right_value.tuple_data_size = subselection_res->size();
+            }
+        }
+    }
+
+    const Selects &selects = sql->sstr.selection;
+    for(int i = 0; i < condition_num; i++) {
+        if(selects.conditions[i].left_type == ATTR &&
            selects.conditions[i].left_value.type == DATES &&
            !is_valid_date(*((int *)selects.conditions[i].left_value.data))) {
             rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
             break;
         }
-        if(!selects.conditions[i].right_is_attr &&
+        if(selects.conditions[i].right_type == ATTR &&
            selects.conditions[i].right_value.type == DATES &&
            !is_valid_date(*((int *)selects.conditions[i].right_value.data))) {
             rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -404,27 +461,41 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         }
     }
 
-    TupleSet tuple_set1; //最后输出的tuple_set
-    tuple_set1.set_schema(output_scheam);
-    rc = tuple_set1.set_tuple_set(std::move(tuple_set));
-    if (rc != RC::SUCCESS) {
-        snprintf(response, sizeof(response), "FAILURE\n");
-        session_event->set_response(response);
+    if(ret_tupleset!=nullptr){
+        ret_tupleset->set_schema(output_scheam);
+        rc = ret_tupleset->set_tuple_set(std::move(tuple_set));
+        if (rc != RC::SUCCESS) {
+            snprintf(response, sizeof(response), "FAILURE\n");
+            session_event->set_response(response);
+            for (SelectExeNode *&tmp_node: select_nodes) {
+                delete tmp_node;
+            }
+            end_trx_if_need(session, trx, false);
+            return rc;
+        }
+    } else {
+        TupleSet tuple_set1; //最后输出的tuple_set
+        tuple_set1.set_schema(output_scheam);
+        rc = tuple_set1.set_tuple_set(std::move(tuple_set));
+        if (rc != RC::SUCCESS) {
+            snprintf(response, sizeof(response), "FAILURE\n");
+            session_event->set_response(response);
+            for (SelectExeNode *&tmp_node: select_nodes) {
+                delete tmp_node;
+            }
+            end_trx_if_need(session, trx, false);
+            return rc;
+        }
+
+        std::stringstream ss;
+        tuple_set1.print(ss, select_nodes.size() != 1);
         for (SelectExeNode *&tmp_node: select_nodes) {
             delete tmp_node;
         }
-        end_trx_if_need(session, trx, false);
+        session_event->set_response(ss.str());
+        end_trx_if_need(session, trx, true);
         return rc;
     }
-
-    std::stringstream ss;
-    tuple_set1.print(ss, select_nodes.size() != 1);
-    for (SelectExeNode *&tmp_node: select_nodes) {
-        delete tmp_node;
-    }
-    session_event->set_response(ss.str());
-    end_trx_if_need(session, trx, true);
-    return rc;
 }
 
 RC ExecuteStage::gen_output_scheam(std::unordered_map<std::string, Table*> &tables_map, 
@@ -608,7 +679,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
             }
         }
         RC rc = RC::SUCCESS;
-        for(int i = 0; i < (int)selects.groupby_num; i++){
+        for(size_t i = 0; i<selects.groupby_num; i++){
             rc = schema_add_field(table, selects.groupby_attr[i].attribute_name, schema);
         }
         if (rc != RC::SUCCESS) {
@@ -620,12 +691,12 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
     std::vector<DefaultConditionFilter *> condition_filters;
     for (size_t i = 0; i < selects.condition_num; i++) {
         const Condition &condition = selects.conditions[i];
-        if ((condition.left_is_attr == 0 && condition.right_is_attr == 0) || // 两边都是值
-            (condition.left_is_attr == 1 && condition.right_is_attr == 0 &&
+        if ((condition.left_type == VALUE && condition.right_type == VALUE) || // 两边都是值
+            (condition.left_type == ATTR && condition.right_type == VALUE &&
              match_table(selects, condition.left_attr.relation_name, table_name)) ||  // 左边是属性右边是值
-            (condition.left_is_attr == 0 && condition.right_is_attr == 1 &&
+            (condition.left_type == VALUE && condition.right_type == ATTR &&
              match_table(selects, condition.right_attr.relation_name, table_name)) ||  // 左边是值，右边是属性名
-            (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
+            (condition.left_type == ATTR && condition.right_type == ATTR &&
              match_table(selects, condition.left_attr.relation_name, table_name) &&
              match_table(selects, condition.right_attr.relation_name, table_name)) // 左右都是属性名，并且表名都符合
                 ) {
@@ -661,7 +732,7 @@ RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects,
     std::list<const Condition *> conditions;
     for (size_t i = 0; i < selects.condition_num; i++) {
         const Condition &condition = selects.conditions[i];
-        if (condition.left_is_attr == 1 && condition.right_is_attr == 1 &&
+        if (condition.left_type == ATTR && condition.right_type == ATTR &&
             0 != strcmp(condition.left_attr.relation_name, condition.right_attr.relation_name)) {
             conditions.push_back(&condition);
         }

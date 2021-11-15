@@ -26,7 +26,9 @@ struct ConDesc {
   int    attr_length; // 如果是属性，表示属性值长度
   int    attr_offset; // 如果是属性，表示在记录中的偏移量
   void * value;       // 如果是值类型，这里记录值的数据
+  void * value_tuple[MAX_NUM]; // IN or NOT IN, 最多可以比较20个
   bool   nullable;    // 如果是属性，这里记录属性是否可以为null
+  int value_tuple_size;
 };
 
 class ConditionFilter {
@@ -39,6 +41,7 @@ public:
    * @return true means match condition, false means failed to match.
    */
   virtual bool filter(const Record &rec) const = 0;
+  virtual bool filter_composed(const Record &rec, CompOp comp_op, void* left_composed_value, void *right_composed_value) const = 0;
 };
 
 class DefaultConditionFilter : public ConditionFilter {
@@ -50,6 +53,7 @@ public:
   RC init(Table &table, const Condition &condition);
 
   virtual bool filter(const Record &rec) const;
+  virtual bool filter_composed(const Record &rec,  CompOp comp_op, void* left_composed_value, void *right_composed_value) const;
 
 public:
   const ConDesc &left() const {
@@ -79,6 +83,7 @@ public:
   RC init(const ConditionFilter *filters[], int filter_num);
   RC init(Table &table, const Condition *conditions, int condition_num);
   virtual bool filter(const Record &rec) const;
+  virtual bool filter_composed(const Record &rec,  CompOp comp_op, void* left_composed_value, void *right_composed_value) const;
 
 public:
   int filter_num() const {

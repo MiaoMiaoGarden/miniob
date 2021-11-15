@@ -32,6 +32,8 @@ DOT              \.
 QUOTE            [\'\"]
 %x STR
 /*DATE            [0-9]{4}+[0-9}{2}+[0-9]{2}*/
+LRBRACE           [(][^()]*[)]
+ANYTHING         [^()]*{LRBRACE}*[^()]*
 %%
 
 {WHITE_SAPCE}                           // ignore whitespace
@@ -39,7 +41,7 @@ QUOTE            [\'\"]
 
 [\-]?{DIGIT}+					                 yylval->string=strdup(yytext);    RETURN_TOKEN(NUMBER);
 [\-]?{DIGIT}+{DOT}{DIGIT}+				       yylval->string=strdup(yytext);  RETURN_TOKEN(FLOAT);
-
+[(][\ ]*[Ss][Ee][Ll][Ee][Cc][Tt][\ ]*{ANYTHING}*[)]  yylval->string=strdup(yytext);  RETURN_TOKEN(SUB_SELECTION);
 ";"                 	 				           RETURN_TOKEN(SEMICOLON);
 {DOT}                 					         RETURN_TOKEN(DOT);
 "*"                   					         RETURN_TOKEN(STAR);
@@ -88,6 +90,8 @@ QUOTE            [\'\"]
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
 {IS}                                     RETURN_TOKEN(IS);
 {IS}[\ ]*{NOT}                                RETURN_TOKEN(ISNOT);
+[Ii][Nn]                                 RETURN_TOKEN(IN);
+{NOT}[\ ]*[Ii][Nn]                       RETURN_TOKEN(NOTIN);
 [Nn][Oo][Tt]                             RETURN_TOKEN(NOT);
 [Nn][Uu][Ll][Ll]                         RETURN_TOKEN(NULL_TOKEN);
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]         RETURN_TOKEN(NULLABLE);
