@@ -148,11 +148,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> STAR
 %token <string> STRING_V
 %token <string> DATE
-<<<<<<< HEAD
 %token <string> SUB_SELECTION
-=======
-%token <string> TEXT
->>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 //非终结符
 
 %type <number> type;
@@ -752,7 +748,6 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
-<<<<<<< HEAD
 	| ID comOp SUB_SELECTION
 	{
 			RelAttr left_attr;
@@ -805,10 +800,6 @@ condition:
 			condition_init(&condition, CONTEXT->comp, 2, NULL, NULL, $1, 1, NULL, &right_attr, NULL);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	};
-=======
-
-    ;
->>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 groupby:
 	// empty
 	|GROUP BY ID groupby_list {

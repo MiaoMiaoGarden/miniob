@@ -326,6 +326,10 @@ void create_index_destroy(CreateIndex *create_index) {
     }
     create_index->attribute_num = 0;
     create_index->relation_name = nullptr;
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 629c1767cb6125b1529e01f4beb6610da2ec5a5a
 }
 
 void drop_index_init(DropIndex *drop_index, const char *index_name) {

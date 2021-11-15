@@ -81,7 +81,6 @@ typedef struct _Orderby {
 } Orderby;
 
 typedef struct _Condition {
-<<<<<<< HEAD
     LRType left_type;    // TRUE if left-hand side is an attribute   // 0 value, 1 attr, 2 subselect
     // 1时，操作符左边是属性名，0时，是属性值
     Value left_value;    // left-hand side value if left_is_attr = FALSE
@@ -93,21 +92,6 @@ typedef struct _Condition {
     RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
     Value right_value;   // right-hand side value if right_is_attr = FALSE
     char* right_subselect;
-=======
-    int left_is_attr;    // TRUE if left-hand side is an attribute
-    int left_is_subselect;
-    // 1时，操作符左边是属性名，0时，是属性值
-    Value left_value;    // left-hand side value if left_is_attr = FALSE
-    RelAttr left_attr;   // left-hand side attribute
-    // struct Selects left_select;
-    CompOp comp;         // comparison operator
-    int right_is_subselect;
-    int right_is_attr;   // TRUE if right-hand side is an attribute
-    // 1时，操作符右边是属性名，0时，是属性值
-    RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
-    Value right_value;   // right-hand side value if right_is_attr = FALSE
-    // struct Selects right_select;
->>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 } Condition;
 
 // struct of select
