@@ -279,6 +279,11 @@ public:
     std::string get_string_value() const override {
         return value_;
     }
+    
+    const void *get_value_pointer() const override {
+      const void *p = &value_;
+      return p;
+    }
 
 private:
     std::string value_;
