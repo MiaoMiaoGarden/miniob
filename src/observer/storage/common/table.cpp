@@ -139,12 +139,15 @@ RC Table::drop(const char *path, const char *name, const char *base_dir) {
             delete index;
         }
 
+        /*
+         * 这段语句好像没啥用
         const FieldMeta *field_meta = table_meta_.field(index_meta->field());
         if (field_meta == nullptr) {
             LOG_PANIC("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
                       name, index_meta->name(), index_meta->field());
             return RC::GENERIC_ERROR;
         }
+        */
 
         std::string index_file = index_data_file(base_dir, name, index_meta->name());
         if (remove(index_file.c_str()) != 0) {
