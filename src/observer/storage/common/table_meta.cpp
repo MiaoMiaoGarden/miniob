@@ -108,7 +108,7 @@ const char *TableMeta::name() const {
 
 void TableMeta::fields_nullable_type(std::vector<bool> &nullable_type) {
   nullable_type.clear();
-  for(int i = sys_fields_.size(); i<fields_.size(); i++){
+  for(int i = sys_fields_.size(); i< (int)fields_.size(); i++){
     nullable_type.push_back(fields_[i].nullable());
   }
 }
