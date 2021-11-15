@@ -43,7 +43,6 @@ using namespace common;
 static RC create_selection_executor(Trx *trx, const Selects &selects, Table *table, 
                     const char *table_name, SelectExeNode &select_node);
 
-
 static RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
                     const std::vector<SelectExeNode*> &select_nodes,
                     TupleSet &tuple_set);
@@ -63,7 +62,6 @@ static void gen_conditions_group(std::list<const Condition *> &conditions,
                             std::vector<std::vector<const Condition*>> &conditions_group,
                             std::vector<TupleSet> &tuple_sets, 
                             int index);
-
 
 static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema);
 //! Constructor
