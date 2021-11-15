@@ -610,7 +610,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, Table *table,
             }
         }
         RC rc = RC::SUCCESS;
-        for(int i = 0; i<selects.groupby_num; i++){
+        for(int i = 0; i < (int)selects.groupby_num; i++){
             rc = schema_add_field(table, selects.groupby_attr[i].attribute_name, schema);
         }
         if (rc != RC::SUCCESS) {

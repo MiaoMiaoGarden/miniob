@@ -45,8 +45,8 @@ public:
         return index_meta_;
     }
 
-    const FieldMeta &field_meta() const {
-        return field_meta_;
+    const std::vector<FieldMeta> &field_meta() const {
+        return fields_meta_;
     }
 
     virtual RC insert_entry(const char *record, const RID *rid) = 0;
@@ -56,13 +56,15 @@ public:
     virtual IndexScanner *create_scanner(CompOp comp_op, const char *value) = 0;
 
     virtual RC sync() = 0;
+
     virtual bool unique_conflict(std::string key)  = 0;
 protected:
     RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);
+    RC init(const IndexMeta &index_meta, std::vector<const FieldMeta*>  &fields_meta);
 
 protected:
     IndexMeta index_meta_;
-    FieldMeta field_meta_;    /// 当前实现仅考虑一个字段的索引
+    std::vector<FieldMeta> fields_meta_;    /// 当前实现仅考虑一个字段的索引
 };
 
 class IndexScanner {

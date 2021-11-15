@@ -318,7 +318,6 @@ void create_index_destroy(CreateIndex *create_index) {
     }
     create_index->attribute_num = 0;
     create_index->relation_name = nullptr;
-    
 }
 
 void drop_index_init(DropIndex *drop_index, const char *index_name) {

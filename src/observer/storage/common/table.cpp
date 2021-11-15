@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <limits.h>
+#include <memory>
 #include <string.h>
 #include <algorithm>
 #include<iostream>
@@ -20,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include <cstring>
 #include<sstream>
 #include<fstream>
+#include <vector>
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
 #include "common/log/log.h"
@@ -178,16 +180,35 @@ RC Table::open(const char *meta_file, const char *base_dir) {
     const int index_num = table_meta_.index_num();
     for (int i = 0; i < index_num; i++) {
         const IndexMeta *index_meta = table_meta_.index(i);
-        const FieldMeta *field_meta = table_meta_.field(index_meta->field());
-        if (field_meta == nullptr) {
-            LOG_PANIC("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
+        const char* field_name = index_meta->field();
+        std::vector<const FieldMeta*> fields_meta;
+        // index 的 field 可能包含多列， field_name 由多个列名字通过 "-" 链组成。
+        // 解析field_name，拿到列名。
+        int j = 0;
+        while (1) {
+            char tmp[256];
+            while(field_name[j] != '\0' && field_name[j] != '-') {
+                tmp[j] = field_name[j];
+                j++;
+            }
+            tmp[j] = '\0';
+            const FieldMeta* field_meta = table_meta_.field(tmp);
+            if (field_meta == nullptr) {
+                LOG_PANIC("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
                       name(), index_meta->name(), index_meta->field());
-            return RC::GENERIC_ERROR;
+                return RC::GENERIC_ERROR;
+            }
+            fields_meta.push_back(field_meta);
+
+            if (field_name[j] == '\0') {
+                break;
+            }
+            j++;
         }
 
         BplusTreeIndex *index = new BplusTreeIndex();
         std::string index_file = index_data_file(base_dir, name(), index_meta->name());
-        rc = index->open(index_file.c_str(), *index_meta, *field_meta);
+        rc = index->open(index_file.c_str(), *index_meta, fields_meta);
         if (rc != RC::SUCCESS) {
             delete index;
             LOG_ERROR("Failed to open index. table=%s, index=%s, file=%s, rc=%d:%s",
@@ -385,7 +406,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out) {
             int b = rand();
             int c = rand();
             int key = a * 99 + b * 9 + c;
-            char *name = "text";
+            const char *name = "text";
             std::string path = name;
             std::ofstream fout(
                     "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta_.name())) + "_" +
@@ -482,18 +503,6 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
     if (nullptr == record_reader) {
         return RC::INVALID_ARGUMENT;
     }
-/*
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context,
-                      void (*record_reader)(const char *data, void *context)) {
-    RecordReaderScanAdapter adapter(record_reader, context);
-    return scan_record(trx, filter, limit, (void *) &adapter, scan_record_reader_adapter);
-}
-
-RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context,
-                      RC (*record_reader)(Record *record, void *context)) {
-    if (nullptr == record_reader) {
-        return RC::INVALID_ARGUMENT;
-    }*/
 
     if (0 == limit) {
         return RC::SUCCESS;
@@ -583,8 +592,8 @@ static RC insert_index_record_reader_adapter(Record *record, void *context) {
     return inserter.insert_index(record);
 }
 
+/*
 RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name, const int &is_unique) {
-
 
     if (index_name == nullptr || common::is_blank(index_name) ||
         attribute_name == nullptr || common::is_blank(attribute_name)) {
@@ -610,6 +619,115 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     BplusTreeIndex *index = new BplusTreeIndex();
     std::string index_file = index_data_file(base_dir_.c_str(), name(), index_name);
     rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
+    if (rc != RC::SUCCESS) {
+        delete index;
+        LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
+        return rc;
+    }
+
+    // 遍历当前的所有数据，插入这个索引
+    IndexInserter index_inserter(index);
+    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
+    if (rc != RC::SUCCESS) {
+        // rollback
+        delete index;
+        LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
+        return rc;
+    }
+    indexes_.push_back(index);
+    TableMeta new_table_meta(table_meta_);
+    rc = new_table_meta.add_index(new_index_meta);
+    if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to add index (%s) on table (%s). error=%d:%s", index_name, name(), rc, strrc(rc));
+        return rc;
+    }
+    // 创建元数据临时文件
+    std::string tmp_file = table_meta_file(base_dir_.c_str(), name()) + ".tmp";
+    std::fstream fs;
+    fs.open(tmp_file, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+    if (!fs.is_open()) {
+        LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
+        return RC::IOERR; // 创建索引中途出错，要做还原操作
+    }
+    if (new_table_meta.serialize(fs) < 0) {
+        LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
+        return RC::IOERR;
+    }
+    fs.close();
+
+    // 覆盖原始元数据文件
+    std::string meta_file = table_meta_file(base_dir_.c_str(), name());
+    int ret = rename(tmp_file.c_str(), meta_file.c_str());
+    if (ret != 0) {
+        LOG_ERROR(
+                "Failed to rename tmp meta file (%s) to normal meta file (%s) while creating index (%s) on table (%s). " \
+              "system error=%d:%s", tmp_file.c_str(), meta_file.c_str(), index_name, name(), errno, strerror(errno));
+        return RC::IOERR;
+    }
+
+    table_meta_.swap(new_table_meta);
+
+    LOG_INFO("add a new index (%s) on the table (%s)", index_name, name());
+
+
+    return rc;
+} */
+
+RC Table::create_index(Trx *trx, const char *index_name, const char *const attributes_name[], int attribute_num, const int &is_unique) {
+    // 检查参数
+    if (index_name == nullptr || common::is_blank(index_name)) {
+        return RC::INVALID_ARGUMENT;
+    }
+
+    for (int i = 0; i < attribute_num; i++) {
+        const char* attribute_name = attributes_name[i];
+        if (attribute_name == nullptr || common::is_blank(attribute_name)) {
+            return RC::INVALID_ARGUMENT;
+        }
+    }
+
+    // 合成field_name
+    int name_lens = 0;
+    for (int i = attribute_num - 1; i >= 0; i--) {
+        name_lens += (strlen(attributes_name[i]) + 1);
+    }
+    std::unique_ptr<char> field_name(new char[name_lens + 1]);
+    char* field_name_ptr = field_name.get();
+    name_lens = 0;
+    for (int i = attribute_num - 1; i >= 0; i--) {
+        int name_len = strlen(attributes_name[i]);
+        strncpy(field_name_ptr + name_lens, attributes_name[i], name_len);
+        name_lens += name_len;
+        field_name_ptr[name_lens] = '-';
+        name_lens += 1;
+    }
+    field_name_ptr[name_lens - 1] = '\0';
+
+    // 检查索引是否存在
+    if (table_meta_.index(index_name) != nullptr ||
+        table_meta_.find_index_by_field((field_name_ptr))) {
+        return RC::SCHEMA_INDEX_EXIST;
+    }
+
+    // 创建索引相关数据
+    IndexMeta new_index_meta;
+    RC rc = new_index_meta.init(index_name, field_name_ptr, is_unique);
+    if (rc != RC::SUCCESS) {
+        return rc;
+    }
+
+    std::vector<const FieldMeta*> fields_meta;
+    for (int i = attribute_num - 1; i >= 0; i--) {
+        const FieldMeta *field_meta = table_meta_.field(attributes_name[i]);
+        if (!field_meta) {
+            return RC::SCHEMA_FIELD_MISSING;
+        }
+        fields_meta.push_back(field_meta);
+    }
+
+    BplusTreeIndex *index = new BplusTreeIndex();
+    std::string index_file = index_data_file(base_dir_.c_str(), name(), index_name);
+    rc = index->create(index_file.c_str(), new_index_meta, fields_meta);
     if (rc != RC::SUCCESS) {
         delete index;
         LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
@@ -1114,7 +1232,11 @@ RC Table::sync() {
 bool Table::insert_unique_conflict(const char *record) {
     for (const auto index: indexes_) {
         if (index->index_meta().unique()) {
-            std::string key = record + index->field_meta().offset();
+            std::string key;
+            for (auto &field_meta : index->field_meta()) {
+                std::string tmp(record + field_meta.offset(), field_meta.len());
+                key += tmp;
+            }
             if (index->unique_conflict(key)) {
                 return true;
             }

@@ -266,7 +266,7 @@ RC TupleSet::sort(const Selects &selects) {
         if (rc != RC::SUCCESS) {
             return true;
         }
-        for (int i = 0; i < selects.orderbys_num; i++) {
+        for (int i = 0; i < (int)selects.orderbys_num; i++) {
             const Orderby& orderby = selects.orderbys[i];
             const char* table_name = orderby.attr.relation_name;
             const char* attribute_name = orderby.attr.attribute_name;
