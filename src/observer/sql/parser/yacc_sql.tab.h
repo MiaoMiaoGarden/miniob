@@ -92,34 +92,37 @@ extern int yydebug;
     DATA = 293,                    /* DATA  */
     INFILE = 294,                  /* INFILE  */
     EQ = 295,                      /* EQ  */
-    LT = 296,                      /* LT  */
-    GT = 297,                      /* GT  */
-    LE = 298,                      /* LE  */
-    GE = 299,                      /* GE  */
-    NE = 300,                      /* NE  */
-    COU = 301,                     /* COU  */
-    MI = 302,                      /* MI  */
-    MA = 303,                      /* MA  */
-    AV = 304,                      /* AV  */
-    NOT = 305,                     /* NOT  */
-    NULL_TOKEN = 306,              /* NULL_TOKEN  */
-    NULLABLE = 307,                /* NULLABLE  */
-    IS = 308,                      /* IS  */
-    ISNOT = 309,                   /* ISNOT  */
-    GROUP = 310,                   /* GROUP  */
-    BY = 311,                      /* BY  */
-    ASC = 312,                     /* ASC  */
-    ORDER = 313,                   /* ORDER  */
-    INNER = 314,                   /* INNER  */
-    JOIN = 315,                    /* JOIN  */
-    NUMBER = 316,                  /* NUMBER  */
-    FLOAT = 317,                   /* FLOAT  */
-    ID = 318,                      /* ID  */
-    PATH = 319,                    /* PATH  */
-    SSS = 320,                     /* SSS  */
-    STAR = 321,                    /* STAR  */
-    STRING_V = 322,                /* STRING_V  */
-    DATE = 323                     /* DATE  */
+    IN = 296,                      /* IN  */
+    NOTIN = 297,                   /* NOTIN  */
+    LT = 298,                      /* LT  */
+    GT = 299,                      /* GT  */
+    LE = 300,                      /* LE  */
+    GE = 301,                      /* GE  */
+    NE = 302,                      /* NE  */
+    COU = 303,                     /* COU  */
+    MI = 304,                      /* MI  */
+    MA = 305,                      /* MA  */
+    AV = 306,                      /* AV  */
+    NOT = 307,                     /* NOT  */
+    NULL_TOKEN = 308,              /* NULL_TOKEN  */
+    NULLABLE = 309,                /* NULLABLE  */
+    IS = 310,                      /* IS  */
+    ISNOT = 311,                   /* ISNOT  */
+    GROUP = 312,                   /* GROUP  */
+    BY = 313,                      /* BY  */
+    ASC = 314,                     /* ASC  */
+    ORDER = 315,                   /* ORDER  */
+    INNER = 316,                   /* INNER  */
+    JOIN = 317,                    /* JOIN  */
+    NUMBER = 318,                  /* NUMBER  */
+    FLOAT = 319,                   /* FLOAT  */
+    ID = 320,                      /* ID  */
+    PATH = 321,                    /* PATH  */
+    SSS = 322,                     /* SSS  */
+    STAR = 323,                    /* STAR  */
+    STRING_V = 324,                /* STRING_V  */
+    DATE = 325,                    /* DATE  */
+    SUB_SELECTION = 326            /* SUB_SELECTION  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -128,7 +131,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 129 "yacc_sql.y"
+#line 131 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -139,7 +142,7 @@ union YYSTYPE
     char *position;
 
 
-#line 143 "yacc_sql.tab.h"
+#line 146 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

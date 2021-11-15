@@ -28,6 +28,7 @@ public:
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
   virtual std::string get_string_value() const = 0;
+  virtual const void *get_value_pointer() const = 0;
 private:
 };
 
@@ -71,6 +72,11 @@ public:
   
   std::string get_string_value() const override {
     return std::to_string(value_);
+  }
+
+  const void *get_value_pointer() const override {
+    const void *p = &value_;
+    return p;
   }
 
 private:
@@ -117,6 +123,12 @@ public:
   std::string get_string_value() const override {
     return std::to_string(value_);
   }
+
+  const void *get_value_pointer() const override {
+    const void *p = &value_;
+    return p;
+  }
+
 private:
   float value_;
 };
@@ -157,6 +169,11 @@ public:
 
   std::string get_string_value() const override {
     return value_;
+  }
+
+  const void *get_value_pointer() const override {
+    const void *p = &value_;
+    return p;
   }
 
 private:
@@ -206,6 +223,11 @@ public:
 
     std::string get_string_value() const override {
       return std::to_string(value_);
+    }
+
+    const void *get_value_pointer() const override {
+      const void *p = &value_;
+      return p;
     }
 
 private:

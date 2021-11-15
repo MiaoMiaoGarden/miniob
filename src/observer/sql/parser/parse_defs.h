@@ -40,7 +40,9 @@ typedef enum {
     NO_OP,
     LESS_THAN_GREAT_THAN,
     IS_COMPOP,
-    IS_NOT_COMPOP
+    IS_NOT_COMPOP,
+    IN_COMPOP,
+    NOTIN_COMPOP
 } CompOp;
 
 //属性值类型
@@ -54,6 +56,12 @@ typedef enum {
 } AttrType;
 
 typedef enum {
+    VALUE,
+    ATTR,
+    SUBSELECTION
+} LRType;
+
+typedef enum {
     O_AES,
     O_DESC
 } OrderType;
@@ -61,6 +69,8 @@ typedef enum {
 typedef struct _Value {
     AttrType type;  // type of value
     void *data;     // value
+    int tuple_data_size;
+    void* tuple_data[MAX_NUM];
 } Value;
 
 typedef struct _Orderby {
@@ -69,15 +79,17 @@ typedef struct _Orderby {
 } Orderby;
 
 typedef struct _Condition {
-    int left_is_attr;    // TRUE if left-hand side is an attribute
+    LRType left_type;    // TRUE if left-hand side is an attribute   // 0 value, 1 attr, 2 subselect
     // 1时，操作符左边是属性名，0时，是属性值
     Value left_value;    // left-hand side value if left_is_attr = FALSE
     RelAttr left_attr;   // left-hand side attribute
+    char* left_subselect;
     CompOp comp;         // comparison operator
-    int right_is_attr;   // TRUE if right-hand side is an attribute
+    LRType right_type;   // TRUE if right-hand side is an attribute
     // 1时，操作符右边是属性名，0时，是属性值
     RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
     Value right_value;   // right-hand side value if right_is_attr = FALSE
+    char* right_subselect;
 } Condition;
 
 // struct of select
@@ -229,8 +241,9 @@ void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby);
 
 void value_destroy(Value *value);
 
-void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
-                    int right_is_attr, RelAttr *right_attr, Value *right_value);
+void condition_init(Condition *condition, CompOp comp,
+                    int left_type, Value *left_value, RelAttr *left_attr, char* left_subselect,
+                    int right_type, Value *right_value, RelAttr *right_attr, char* right_subselect);
 void condition_destroy(Condition *condition);
 
 void string2int(int *int_length, const char* length);

@@ -214,13 +214,13 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
             if (updates.value.type == DATES && !isValidDate(*((int *) updates.value.data)))
                 rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
             for (int i = 0; i < updates.condition_num; i++) {
-                if (!updates.conditions[i].left_is_attr &&
+                if (VALUE == updates.conditions[i].left_type &&
                     updates.conditions[i].left_value.type == DATES &&
                     !isValidDate(*((int *) updates.conditions[i].left_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
                     break;
                 }
-                if (!updates.conditions[i].right_is_attr &&
+                if (VALUE == updates.conditions[i].right_type &&
                     updates.conditions[i].right_value.type == DATES &&
                     !isValidDate(*((int *) updates.conditions[i].right_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -239,13 +239,13 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
             const char *table_name = deletes.relation_name;
             int deleted_count = 0;
             for (int i = 0; i < deletes.condition_num; i++) {
-                if (!deletes.conditions[i].left_is_attr &&
+                if (VALUE == deletes.conditions[i].left_type &&
                     deletes.conditions[i].left_value.type == DATES &&
                     !isValidDate(*((int *) deletes.conditions[i].left_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
                     break;
                 }
-                if (!deletes.conditions[i].right_is_attr &&
+                if (VALUE == deletes.conditions[i].right_type &&
                     deletes.conditions[i].right_value.type == DATES &&
                     !isValidDate(*((int *) deletes.conditions[i].right_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
