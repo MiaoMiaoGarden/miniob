@@ -783,8 +783,10 @@ static bool do_filter(std::vector<const Condition *> &conditions,
             int result = tuple_value1.compare(tuple_value2);
             if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
                                 condition->comp == CompOp::LESS_EQUAL)) ||
-                (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
-                (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
+                (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL ||
+                                condition->comp == CompOp::NOT_EQUAL)) ||
+                (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL ||
+                                condition->comp == CompOp::NOT_EQUAL))) {
                 // do nothing
             } else {
                 return false;

@@ -112,7 +112,6 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
             type_right = NULLS;
         }
 
-
         right.attr_length = 0;
         right.attr_offset = 0;
     }
@@ -157,7 +156,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
         right_value = (char *) right_.value;
     }
 
-    int cmp_result = 0;  // 0 false, 1 true
+    float cmp_result = 0;  // 0 false, 1 true
     bool left_is_null = (*left_value == '!');
     bool right_is_null = (*right_value == '!');
 
@@ -208,7 +207,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
             case FLOATS: {
                 float left = *(float *) left_value;
                 float right = *(float *) right_value;
-                cmp_result = (int) (left - right);
+                cmp_result = left - right;
             }
                 break;
             case DATES: {
