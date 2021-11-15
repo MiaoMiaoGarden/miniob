@@ -14,29 +14,35 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/common/bplus_tree_index.h"
 #include "common/log/log.h"
+#include <vector>
 
 BplusTreeIndex::~BplusTreeIndex() noexcept {
     close();
 }
 
-RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta) {
+RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, std::vector<const FieldMeta*> &fields_meta) {
     if (inited_) {
         return RC::RECORD_OPENNED;
     }
 
-    RC rc = Index::init(index_meta, field_meta);
+    RC rc = Index::init(index_meta, fields_meta);
     if (rc != RC::SUCCESS) {
         return rc;
     }
 
-    rc = index_handler_.create(file_name, field_meta.type(), field_meta.len());
+    int key_len = 0;
+    for (auto& field_meta : fields_meta) {
+        key_len += field_meta->len();
+    }
+
+    rc = index_handler_.create(file_name, fields_meta, key_len);
     if (RC::SUCCESS == rc) {
         inited_ = true;
     }
     return rc;
 }
 
-RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta) {
+RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, std::vector<const FieldMeta*> &field_meta) {
     if (inited_) {
         return RC::RECORD_OPENNED;
     }
@@ -61,9 +67,12 @@ RC BplusTreeIndex::close() {
 }
 
 RC BplusTreeIndex::insert_entry(const char *record, const RID *rid) {
+    std::string key;
+    for (auto &field_meta : fields_meta_) {
+        std::string tmp(record + field_meta.offset(), field_meta.len());
+        key += tmp;
+    }
     if (index_meta_.unique()) {
-
-        std::string key = record + field_meta_.offset();
         if(key!="!null"){ // null key can be not unique
             if (unique_conflict(key)) {
                 return RC::UNIQUEINDEX_CONFLICT;
@@ -72,24 +81,25 @@ RC BplusTreeIndex::insert_entry(const char *record, const RID *rid) {
             }
         }
     }
-    return index_handler_.insert_entry(record + field_meta_.offset(), rid);
+    return index_handler_.insert_entry(key.c_str(), rid);
 }
 
 RC BplusTreeIndex::delete_entry(const char *record, const RID *rid) {
+    std::string key;
+    for (auto &field_meta : fields_meta_) {
+        std::string tmp(record + field_meta.offset(), field_meta.len());
+        key += tmp;
+    }
     if (index_meta_.unique()) {
-        std::string key = record + field_meta_.offset();
         if (unique_conflict(key)) {
             unique2Key_[key]--;
         }
     }
-    return index_handler_.delete_entry(record + field_meta_.offset(), rid);
+    return index_handler_.delete_entry(key.c_str(), rid);
 }
 
 bool BplusTreeIndex::unique_conflict(std::string key) {
-    if (unique2Key_.count(key)) {
-        return true;
-    }
-    return false;
+    return unique2Key_.count(key);
 }
 
 IndexScanner *BplusTreeIndex::create_scanner(CompOp comp_op, const char *value) {

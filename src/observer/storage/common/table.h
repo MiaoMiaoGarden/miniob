@@ -61,7 +61,7 @@ public:
 
   RC scan_record(Trx *trx, ConditionFilter *filter, int limit,  void *context, void (*record_reader)(const char *data, void *context));
 
-  RC create_index(Trx *trx, const char *index_name, const char *attribute_name, const int &is_unique);
+  RC create_index(Trx *trx, const char *index_name, const char *const attributes_name[], int attribute_num, const int &is_unique);
 
   RC mulit_insert_record(Trx *trx, int value_num, const Value *values, std::vector<Record>& trash);
 

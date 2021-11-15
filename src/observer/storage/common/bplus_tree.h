@@ -14,15 +14,23 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_
 #define __OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_
 
+#define MAX_INDEX_FIELD 20
+
 #include "record_manager.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "sql/parser/parse_defs.h"
 #include <sstream>
+#include <functional>
 
+class FieldMeta;
+
+        
 struct IndexFileHeader {
-    int attr_length;
     int key_length;
-    AttrType attr_type;
+    int attr_num;
+    int attr_length[MAX_INDEX_FIELD];
+    AttrType attr_type[MAX_INDEX_FIELD];
+    int attrs_length;
     PageNum root_page; // 初始时，root_page一定是1
     int node_num;
     int order;
@@ -57,7 +65,8 @@ public:
      * 此函数创建一个名为fileName的索引。
      * attrType描述被索引属性的类型，attrLength描述被索引属性的长度
      */
-    RC create(const char *file_name, AttrType attr_type, int attr_length);
+    // RC create(const char *file_name, AttrType attr_type, int attr_length);
+    RC create(const char *file_name, std::vector<const FieldMeta*> fields_meta, int key_len);
 
     /**
      * 打开名为fileName的索引文件。
@@ -91,6 +100,10 @@ public:
     RC get_entry(const char *pkey, RID *rid);
 
     RC sync();
+
+    int compare_key(const char *pdata, const char *pkey);
+
+    int compare_key_without_rid(const char *pdata, const char *pkey);
 
 public:
     RC print();
@@ -176,7 +189,7 @@ private:
     BplusTreeHandler &index_handler_;
     bool opened_ = false;
     CompOp comp_op_ = NO_OP;                      // 用于比较的操作符
-    const char *value_ = nullptr;                      // 与属性行比较的值
+    const char *value_ = nullptr;                 // 与属性行比较的值
     int num_fixed_pages_ = -1;                    // 固定在缓冲区中的页，与指定的页面固定策略有关
     int pinned_page_count_ = 0;                   // 实际固定在缓冲区的页面数
     BPPageHandle page_handles_[BP_BUFFER_SIZE];   // 固定在缓冲区页面所对应的页面操作列表
