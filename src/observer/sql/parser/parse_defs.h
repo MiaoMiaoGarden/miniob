@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
-typedef enum {COUNT=4,MIN=1,MAX=2,AVG=3,NON=0} AggreType;
+typedef enum { COUNT = 4, MIN = 1, MAX = 2, AVG = 3, NON = 0 } AggreType;
 //属性结构体
 typedef struct {
     char *relation_name;   // relation name (may be NULL) 表名
@@ -52,7 +52,8 @@ typedef enum {
     INTS,
     FLOATS,
     DATES,
-    NULLS  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
+    NULLS,  // , NULLABLE_CHARS, NULLABLE_INTS, NULLABLE_FLOATS, NULLABLE_DATES
+    TEXTS,
 } AttrType;
 
 typedef enum {
@@ -65,6 +66,7 @@ typedef enum {
     O_AES,
     O_DESC
 } OrderType;
+
 //属性值
 typedef struct _Value {
     AttrType type;  // type of value
@@ -79,6 +81,7 @@ typedef struct _Orderby {
 } Orderby;
 
 typedef struct _Condition {
+<<<<<<< HEAD
     LRType left_type;    // TRUE if left-hand side is an attribute   // 0 value, 1 attr, 2 subselect
     // 1时，操作符左边是属性名，0时，是属性值
     Value left_value;    // left-hand side value if left_is_attr = FALSE
@@ -90,6 +93,21 @@ typedef struct _Condition {
     RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
     Value right_value;   // right-hand side value if right_is_attr = FALSE
     char* right_subselect;
+=======
+    int left_is_attr;    // TRUE if left-hand side is an attribute
+    int left_is_subselect;
+    // 1时，操作符左边是属性名，0时，是属性值
+    Value left_value;    // left-hand side value if left_is_attr = FALSE
+    RelAttr left_attr;   // left-hand side attribute
+    // struct Selects left_select;
+    CompOp comp;         // comparison operator
+    int right_is_subselect;
+    int right_is_attr;   // TRUE if right-hand side is an attribute
+    // 1时，操作符右边是属性名，0时，是属性值
+    RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
+    Value right_value;   // right-hand side value if right_is_attr = FALSE
+    // struct Selects right_select;
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 } Condition;
 
 // struct of select
@@ -160,9 +178,9 @@ typedef struct {
 typedef struct {
     char *index_name;      // Index name
     char *relation_name;   // Relation name
-    char *attribute_name;  // Attribute name
+    int attribute_num;
+    char *attribute_name[MAX_NUM];  // Attribute name
     int isUnique;          // is unique index
-
 } CreateIndex;
 
 // struct of  drop_index
@@ -236,6 +254,7 @@ void value_init_float_float(Value *value, float v);
 
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);
+void value_init_text(Value *value, const char *v);
 void value_init_null(Value *value);
 void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby);
 
@@ -278,6 +297,7 @@ void drop_table_destroy(DropTable *drop_table);
 
 void create_index_init(
         CreateIndex *create_index, const char *index_name, const char *relation_name, const char *attr_name);
+void create_index_add_attr(CreateIndex *create_index, const char *attr_name);
 void create_index_destroy(CreateIndex *create_index);
 
 void drop_index_init(DropIndex *drop_index, const char *index_name);

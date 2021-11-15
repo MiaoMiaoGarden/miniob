@@ -132,7 +132,6 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
             return RC::EMPTY;
         }
 
-
         right.attr_length = 0;
         right.attr_offset = 0;
     }
@@ -231,7 +230,7 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
         right_value = (char *) right_.value;
     }
 
-    int cmp_result = 0;  // 0 false, 1 true
+    float cmp_result = 0;  // 0 false, 1 true
     bool left_is_null = (*left_value == '!');
     bool right_is_null = (*right_value == '!');
 
@@ -265,7 +264,8 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
         }
     } else {  // notnull comop notnull
         switch (attr_type_) {  // left.attr_type
-            case CHARS: {  // 字符串都是定长的，直接比较
+            case CHARS:
+            case TEXTS: {  // 字符串都是定长的，直接比较
                 // 按照C字符串风格来定
                 cmp_result = strcmp(left_value, right_value);
             }
@@ -281,7 +281,7 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
             case FLOATS: {
                 float left = *(float *) left_value;
                 float right = *(float *) right_value;
-                cmp_result = (int) (left - right);
+                cmp_result = left - right;
             }
                 break;
             case DATES: {

@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/index.h"
 #include "storage/common/bplus_tree.h"
 #include <unordered_map>
+#include <vector>
 
 class BplusTreeIndex : public Index {
 public:
@@ -25,9 +26,9 @@ public:
 
     virtual ~BplusTreeIndex() noexcept;
 
-    RC create(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta);
+    RC create(const char *file_name, const IndexMeta &index_meta, std::vector<const FieldMeta*> &fields_meta);
 
-    RC open(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta);
+    RC open(const char *file_name, const IndexMeta &index_meta, std::vector<const FieldMeta*> &field_meta);
 
     RC close();
 
@@ -36,14 +37,17 @@ public:
     RC delete_entry(const char *record, const RID *rid) override;
 
     IndexScanner *create_scanner(CompOp comp_op, const char *value) override;
-    bool unique_conflict(std::string key);
+
+    bool unique_conflict(std::string key) override;
+
+    int compare_key(const char *key1, const char *key2);
+
     RC sync() override;
 
 private:
-
     bool inited_ = false;
     BplusTreeHandler index_handler_;
-    std::unordered_map<std::string , int> unique2Key_;
+    std::unordered_map<std::string, int> unique2Key_;
 };
 
 class BplusTreeIndexScanner : public IndexScanner {

@@ -90,6 +90,7 @@ ParserContext *get_context(yyscan_t scanner)
         STRING_T
         FLOAT_T
         DATE_T
+        TEXT_T
         HELP
         EXIT
         DOT //QUOTE
@@ -147,7 +148,11 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> STAR
 %token <string> STRING_V
 %token <string> DATE
+<<<<<<< HEAD
 %token <string> SUB_SELECTION
+=======
+%token <string> TEXT
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 //非终结符
 
 %type <number> type;
@@ -236,19 +241,24 @@ desc_table:
     ;
 
 create_index:		/*create index 语句的语法解析树*/
-    CREATE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
-		{
-			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
-		}
+	CREATE INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON
+	{
+		CONTEXT->ssql->flag = SCF_CREATE_INDEX; //"create_index";
+		create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
+	}
+    | CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON
+    {
+        CONTEXT->ssql->flag = SCF_CREATE_INDEX; //"create_index";
+        (CONTEXT->ssql->sstr.create_index).isUnique = 1;
+        create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8);
+    }
     ;
-    |CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON
-        {
-            CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-            (CONTEXT->ssql->sstr.create_index).isUnique = 1;
-            create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8);
 
-        }
+id_list:
+	//empty
+	| COMMA ID id_list{
+		create_index_add_attr(&CONTEXT->ssql->sstr.create_index, $2);
+	}
 drop_index:			/*drop index 语句的语法解析树*/
     DROP INDEX ID  SEMICOLON 
 		{
@@ -320,6 +330,7 @@ type:
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
        | DATE_T { $$=DATES; }
+       | TEXT_T { $$=TEXTS; }
        ;
 ID_get:
 	ID 
@@ -378,7 +389,7 @@ value:
 		}
 		}
     |SSS {
-			$1 = substr($1,1,strlen($1)-2);
+		$1 = substr($1,1,strlen($1)-2);
 		if (CONTEXT->multi_insert_lines == 0)  {
 
   	    	value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
@@ -741,6 +752,7 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+<<<<<<< HEAD
 	| ID comOp SUB_SELECTION
 	{
 			RelAttr left_attr;
@@ -793,6 +805,10 @@ condition:
 			condition_init(&condition, CONTEXT->comp, 2, NULL, NULL, $1, 1, NULL, &right_attr, NULL);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	};
+=======
+
+    ;
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 groupby:
 	// empty
 	|GROUP BY ID groupby_list {

@@ -67,6 +67,9 @@ void Tuple::add(int value, bool flag) {
         add(new DateValue(value));
 }
 
+void Tuple::add(std::string &text) {
+    add(new TEXTValue(text));
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 std::string TupleField::to_string() const {
@@ -263,7 +266,7 @@ RC TupleSet::sort(const Selects &selects) {
         if (rc != RC::SUCCESS) {
             return true;
         }
-        for (int i = 0; i < selects.orderbys_num; i++) {
+        for (int i = 0; i < (int)selects.orderbys_num; i++) {
             const Orderby& orderby = selects.orderbys[i];
             const char* table_name = orderby.attr.relation_name;
             const char* attribute_name = orderby.attr.attribute_name;
@@ -487,7 +490,8 @@ void TupleRecordConverter::add_record(const char *record) {
                 tuple.add(value);
             }
                 break;
-            case CHARS: {
+            case CHARS:
+            {
                 const char *s = record + field_meta->offset();  // 现在当做Cstring来处理
                 tuple.add(s, strlen(s));
             }
@@ -497,6 +501,12 @@ void TupleRecordConverter::add_record(const char *record) {
                 tuple.add(value, true);
             }
                 break;
+            case TEXTS: {
+                int num = *(int *) (record + field_meta->offset());
+                std:: string path = "./miniob/db/sys/" + std::string(const_cast<char *>(table_meta.name())) + "_" + std::to_string(num) + "_" + "text.txt";
+                tuple.add(path);
+            }
+
             default: {
                 LOG_PANIC("Unsupported field type. type=%d", field_meta->type());
             }

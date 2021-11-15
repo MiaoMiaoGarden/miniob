@@ -43,7 +43,6 @@ using namespace common;
 static RC create_selection_executor(Trx *trx, const Selects &selects, Table *table, 
                     const char *table_name, SelectExeNode &select_node);
 
-
 static RC cross_join(std::vector<TupleSet> &tuple_sets, const Selects &selects, 
                     const std::vector<SelectExeNode*> &select_nodes,
                     TupleSet &tuple_set);
@@ -63,7 +62,6 @@ static void gen_conditions_group(std::list<const Condition *> &conditions,
                             std::vector<std::vector<const Condition*>> &conditions_group,
                             std::vector<TupleSet> &tuple_sets, 
                             int index);
-
 
 static RC schema_add_field(Table *table, const char *field_name, TupleSchema &schema);
 //! Constructor
@@ -856,8 +854,10 @@ static bool do_filter(std::vector<const Condition *> &conditions,
             int result = tuple_value1.compare(tuple_value2);
             if ((result == 0 && (condition->comp == CompOp::EQUAL_TO || condition->comp == CompOp::GREAT_EQUAL ||
                                 condition->comp == CompOp::LESS_EQUAL)) ||
-                (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL)) ||
-                (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL))) {
+                (result == 1 && (condition->comp == CompOp::GREAT_THAN || condition->comp == CompOp::GREAT_EQUAL ||
+                                condition->comp == CompOp::NOT_EQUAL)) ||
+                (result == -1 && (condition->comp == CompOp::LESS_THAN || condition->comp == CompOp::LESS_EQUAL ||
+                                condition->comp == CompOp::NOT_EQUAL))) {
                 // do nothing
             } else {
                 return false;

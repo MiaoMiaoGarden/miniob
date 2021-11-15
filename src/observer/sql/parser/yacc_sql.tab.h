@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.7.5.  */
+/* A Bison parser, made by GNU Bison 3.7.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -78,6 +78,7 @@ extern int yydebug;
     STRING_T = 279,                /* STRING_T  */
     FLOAT_T = 280,                 /* FLOAT_T  */
     DATE_T = 281,                  /* DATE_T  */
+<<<<<<< HEAD
     HELP = 282,                    /* HELP  */
     EXIT = 283,                    /* EXIT  */
     DOT = 284,                     /* DOT  */
@@ -123,6 +124,52 @@ extern int yydebug;
     STRING_V = 324,                /* STRING_V  */
     DATE = 325,                    /* DATE  */
     SUB_SELECTION = 326            /* SUB_SELECTION  */
+=======
+    TEXT_T = 282,                  /* TEXT_T  */
+    HELP = 283,                    /* HELP  */
+    EXIT = 284,                    /* EXIT  */
+    DOT = 285,                     /* DOT  */
+    INTO = 286,                    /* INTO  */
+    VALUES = 287,                  /* VALUES  */
+    FROM = 288,                    /* FROM  */
+    WHERE = 289,                   /* WHERE  */
+    AND = 290,                     /* AND  */
+    SET = 291,                     /* SET  */
+    ON = 292,                      /* ON  */
+    LOAD = 293,                    /* LOAD  */
+    DATA = 294,                    /* DATA  */
+    INFILE = 295,                  /* INFILE  */
+    EQ = 296,                      /* EQ  */
+    LT = 297,                      /* LT  */
+    GT = 298,                      /* GT  */
+    LE = 299,                      /* LE  */
+    GE = 300,                      /* GE  */
+    NE = 301,                      /* NE  */
+    COU = 302,                     /* COU  */
+    MI = 303,                      /* MI  */
+    MA = 304,                      /* MA  */
+    AV = 305,                      /* AV  */
+    NOT = 306,                     /* NOT  */
+    NULL_TOKEN = 307,              /* NULL_TOKEN  */
+    NULLABLE = 308,                /* NULLABLE  */
+    IS = 309,                      /* IS  */
+    ISNOT = 310,                   /* ISNOT  */
+    GROUP = 311,                   /* GROUP  */
+    BY = 312,                      /* BY  */
+    ASC = 313,                     /* ASC  */
+    ORDER = 314,                   /* ORDER  */
+    INNER = 315,                   /* INNER  */
+    JOIN = 316,                    /* JOIN  */
+    NUMBER = 317,                  /* NUMBER  */
+    FLOAT = 318,                   /* FLOAT  */
+    ID = 319,                      /* ID  */
+    PATH = 320,                    /* PATH  */
+    SSS = 321,                     /* SSS  */
+    STAR = 322,                    /* STAR  */
+    STRING_V = 323,                /* STRING_V  */
+    DATE = 324,                    /* DATE  */
+    TEXT = 325                     /* TEXT  */
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -131,7 +178,11 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
+<<<<<<< HEAD
 #line 131 "yacc_sql.y"
+=======
+#line 130 "yacc_sql.y"
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -142,7 +193,11 @@ union YYSTYPE
     char *position;
 
 
+<<<<<<< HEAD
 #line 146 "yacc_sql.tab.h"
+=======
+#line 145 "yacc_sql.tab.h"
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
 
 };
 typedef union YYSTYPE YYSTYPE;

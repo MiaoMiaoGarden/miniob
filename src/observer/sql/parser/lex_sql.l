@@ -55,6 +55,7 @@ ANYTHING         [^()]*{LRBRACE}*[^()]*
 [Hh][Ee][Ll][Pp]                    	   RETURN_TOKEN(HELP);
 [Aa][Ss][Cc]                             RETURN_TOKEN(ASC);
 [Dd][Ee][Ss][Cc]                         RETURN_TOKEN(DESC);
+[Tt][Ee][Xx][Tt]                         RETURN_TOKEN(TEXT_T);
 [Gg][Rr][Oo][Uu][Pp]                     RETURN_TOKEN(GROUP);
 [Oo][Rr][Dd][Ee][Rr]                     RETURN_TOKEN(ORDER);
 [Bb][Yy]                                 RETURN_TOKEN(BY);

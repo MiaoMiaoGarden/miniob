@@ -43,15 +43,15 @@ void relation_attr_destroy(RelAttr *relation_attr) {
     relation_attr->attribute_name = nullptr;
 }
 
-void value_init_integer(Value *value, const char* v) {
+void value_init_integer(Value *value, const char *v) {
     int int_v = atoi(v);
     value->type = INTS;
     value->data = malloc(sizeof(int_v));
     memcpy(value->data, &int_v, sizeof(int_v));
 }
 
-void value_init_float(Value *value, const char *v ) {
-    float float_v = (float)(atof(v));
+void value_init_float(Value *value, const char *v) {
+    float float_v = (float) (atof(v));
     value->type = FLOATS;
     value->data = malloc(sizeof(float_v));
     memcpy(value->data, &float_v, sizeof(float_v));
@@ -86,7 +86,7 @@ void value_init_date(Value *value, const char *v) {
     memcpy(value->data, &intdate, sizeof(intdate));
 }
 
-void value_init_null(Value *value){
+void value_init_null(Value *value) {
     value->type = NULLS;
     char null_[] = "!null";
     value->data = malloc(sizeof(null_));
@@ -99,7 +99,7 @@ void value_destroy(Value *value) {
     value->data = nullptr;
 }
 
-void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby){
+void orderby_init_append(Selects *select, int asc_desc, Orderby *orderby) {
     orderby->asc_desc = asc_desc;
     select->orderbys[select->orderbys_num++] = *orderby;
 }
@@ -144,19 +144,22 @@ void condition_destroy(Condition *condition) {
     }
 }
 
-void string2int(int *int_length, const char* length){
+void string2int(int *int_length, const char *length) {
     *int_length = atoi(length);
 }
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int nullable) {
     attr_info->name = strdup(name);
     attr_info->type = type;
-    if(nullable==0){ // not nullable
+    if (nullable == 0) { // not nullable
         attr_info->nullable = 0;
     } else {   // nullable
         attr_info->nullable = 1;
     }
-    attr_info->length = length;
+    if/**/ (type != TEXTS)
+        attr_info->length = length;
+    else
+        attr_info->length = 8;
 }
 
 void attr_info_destroy(AttrInfo *attr_info) {
@@ -200,7 +203,7 @@ void selects_destroy(Selects *selects) {
 }
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[],
-        size_t value_num, size_t multi_insert_line, extraValues extraValue[]) {
+                  size_t value_num, size_t multi_insert_line, extraValues extraValue[]) {
     assert(value_num <= sizeof(inserts->values) / sizeof(inserts->values[0]));
 
     inserts->relation_name = strdup(relation_name);
@@ -305,7 +308,11 @@ void create_index_init(CreateIndex *create_index, const char *index_name,
                        const char *relation_name, const char *attr_name) {
     create_index->index_name = strdup(index_name);
     create_index->relation_name = strdup(relation_name);
-    create_index->attribute_name = strdup(attr_name);
+    create_index->attribute_name[create_index->attribute_num++] = strdup(attr_name);
+}
+
+void create_index_add_attr(CreateIndex *create_index, const char *attr_name){
+    create_index->attribute_name[create_index->attribute_num++] = strdup(attr_name);
 }
 
 void create_index_destroy(CreateIndex *create_index) {
@@ -314,8 +321,11 @@ void create_index_destroy(CreateIndex *create_index) {
     free(create_index->attribute_name);
 
     create_index->index_name = nullptr;
+    for(int i = 0; i<create_index->attribute_num; i++){
+        create_index->attribute_name[i] = nullptr;
+    }
+    create_index->attribute_num = 0;
     create_index->relation_name = nullptr;
-    create_index->attribute_name = nullptr;
 }
 
 void drop_index_init(DropIndex *drop_index, const char *index_name) {

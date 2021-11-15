@@ -196,7 +196,7 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
         case SCF_INSERT: { // insert into
             const Inserts &inserts = sql->sstr.insertion;
             const char *table_name = inserts.relation_name;
-            for (int i = 0; i < inserts.value_num; i++) {
+            for (int i = 0; i < (int)inserts.value_num; i++) {
                 if (inserts.values[i].type == DATES && !isValidDate(*((int *) inserts.values[i].data)))
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
             }
@@ -213,8 +213,13 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
             int updated_count = 0;
             if (updates.value.type == DATES && !isValidDate(*((int *) updates.value.data)))
                 rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+<<<<<<< HEAD
             for (int i = 0; i < updates.condition_num; i++) {
                 if (VALUE == updates.conditions[i].left_type &&
+=======
+            for (int i = 0; i < (int)updates.condition_num; i++) {
+                if (!updates.conditions[i].left_is_attr &&
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
                     updates.conditions[i].left_value.type == DATES &&
                     !isValidDate(*((int *) updates.conditions[i].left_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -238,8 +243,13 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
             const Deletes &deletes = sql->sstr.deletion;
             const char *table_name = deletes.relation_name;
             int deleted_count = 0;
+<<<<<<< HEAD
             for (int i = 0; i < deletes.condition_num; i++) {
                 if (VALUE == deletes.conditions[i].left_type &&
+=======
+            for (int i = 0; i < (int)deletes.condition_num; i++) {
+                if (!deletes.conditions[i].left_is_attr &&
+>>>>>>> 32e9b56e07741c0e1b0df385e7ff5fbc6901ec63
                     deletes.conditions[i].left_value.type == DATES &&
                     !isValidDate(*((int *) deletes.conditions[i].left_value.data))) {
                     rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -430,6 +440,10 @@ RC insert_record_from_file(Table *table, std::vector<std::string> &file_values,
                 } else {
                     value_init_integer_int(&record_values[i], int_value);
                 }
+            }
+                break;
+            case TEXTS:  {
+                value_init_string(&record_values[i], file_value.c_str());
             }
                 break;
             default: {

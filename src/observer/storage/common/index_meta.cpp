@@ -23,13 +23,19 @@ See the Mulan PSL v2 for more details. */
 const static Json::StaticString FIELD_NAME("name");
 const static Json::StaticString FIELD_FIELD_NAME("field_name");
 const static Json::StaticString FIELD_IS_UNIQUE("is_unique");
-RC IndexMeta::init(const char *name, const FieldMeta &field, const int &isUnique) {
+
+
+RC IndexMeta::init(const char *name, const char *field_name, const int &isUnique) {
   if (nullptr == name || common::is_blank(name)) {
     return RC::INVALID_ARGUMENT;
   }
 
+  if (nullptr == field_name || common::is_blank(field_name)) {
+    return RC::INVALID_ARGUMENT;
+  }
+
   name_ = name;
-  field_ = field.name();
+  field_ = field_name;
   unique_ = isUnique;
   return RC::SUCCESS;
 }
@@ -54,13 +60,14 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
     return RC::GENERIC_ERROR;
   }
 
+  /*
   const FieldMeta *field = table.field(field_value.asCString());
   if (nullptr == field) {
     LOG_ERROR("Deserialize index [%s]: no such field: %s", name_value.asCString(), field_value.asCString());
     return RC::SCHEMA_FIELD_MISSING;
-  }
+  } */
 
-  return index.init(name_value.asCString(), *field, json_value[FIELD_IS_UNIQUE].asInt());
+  return index.init(name_value.asCString(), field_value.asCString(), json_value[FIELD_IS_UNIQUE].asInt());
 }
 
 const char *IndexMeta::name() const {
@@ -70,10 +77,13 @@ const char *IndexMeta::name() const {
 const char *IndexMeta::field() const {
   return field_.c_str();
 }
+
 const int IndexMeta::unique() const {
     return unique_;
 }
+
 void IndexMeta::desc(std::ostream &os) const {
   os << "index name=" << name_
       << ", field=" << field_;
 }
+
