@@ -48,6 +48,10 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
         return RC::INVALID_ARGUMENT;
     }
 
+    if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP && (left.value_tuple_size != 0 || right.value_tuple_size != 0)) {
+        return RC::INVALID_COMPOP;
+    }
+
     left_ = left;
     right_ = right;
     left_attr_type_ = left_attr_type;

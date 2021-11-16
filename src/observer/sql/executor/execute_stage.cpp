@@ -312,6 +312,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             }
             TupleSet *subselection_res = new TupleSet();
             do_select(db, subselection, session_event, subselection_res);
+            if (subselection_res->get_schema().fields().size() != 1) {
+                return RC::INVALID_ARGUMENT;
+            }
+
             sql->sstr.selection.conditions[i].left_type = VALUE;
             sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
             if(subselection_res->is_empty() || (subselection_res->size()==1 && subselection_res->get(0).get_pointer(0).get()==nullptr)){
@@ -344,6 +348,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             }
             TupleSet *subselection_res = new TupleSet();
             do_select(db, subselection, session_event, subselection_res);
+            if (subselection_res->get_schema().fields().size() != 1) {
+                return RC::INVALID_ARGUMENT;
+            }
+
             sql->sstr.selection.conditions[i].right_type = VALUE;
             sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
             if(subselection_res->is_empty() || (subselection_res->size()==1 && subselection_res->get(0).get_pointer(0).get()==nullptr)){
