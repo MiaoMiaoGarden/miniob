@@ -799,7 +799,13 @@ condition:
 			Condition condition;
 			condition_init(&condition, CONTEXT->comp, 2, NULL, NULL, $1, 1, NULL, &right_attr, NULL);
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	};
+	}
+	| SUB_SELECTION comOp SUB_SELECTION
+	{
+			Condition condition;
+			condition_init(&condition, CONTEXT->comp, 2, NULL, NULL, $1, 2, NULL, NULL, $3);
+			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
 groupby:
 	// empty
 	|GROUP BY ID groupby_list {
