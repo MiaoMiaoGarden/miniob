@@ -318,10 +318,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
                 sql->sstr.selection.conditions[i].right_value.type = NULLS;
                 sql->sstr.selection.conditions[i].left_value.data = nullptr;
             } else if (subselection_res->size()==1) {
+                sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
                 sql->sstr.selection.conditions[i].left_value.data = const_cast<void*>(subselection_res->get(0).get(0).get_value_pointer());
             } else {
+                sql->sstr.selection.conditions[i].left_value.data = nullptr;
+                sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
                 for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
-                    sql->sstr.selection.conditions[i].left_value.data = nullptr;
                     sql->sstr.selection.conditions[i].left_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
                 }
                 sql->sstr.selection.conditions[i].left_value.tuple_data_size = subselection_res->size();
@@ -346,10 +348,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
                 sql->sstr.selection.conditions[i].right_value.type = NULLS;
                 sql->sstr.selection.conditions[i].right_value.data = nullptr;
             } else if (subselection_res->size()==1) {
+                sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
                 sql->sstr.selection.conditions[i].right_value.data = const_cast<void*>(subselection_res->get(0).get(0).get_value_pointer());
             } else {
+                sql->sstr.selection.conditions[i].right_value.data = nullptr;
+                sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
                 for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
-                    sql->sstr.selection.conditions[i].right_value.data = nullptr;
                     sql->sstr.selection.conditions[i].right_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
                 }
                 sql->sstr.selection.conditions[i].right_value.tuple_data_size = subselection_res->size();
@@ -464,8 +468,19 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
 
     if(ret_tupleset!=nullptr){
+        TupleSchema ret_output_scheam;
+        for (int i = 0; i < selects.attr_num; i++) {
+            const RelAttr &attr = selects.attributes[i];
+            const char *table_name = attr.relation_name != nullptr ? attr.relation_name : selects.relations[0];
+            AttrType attr_type = output_scheam.field(i).type();
+            if (attr.aggre_type == AggreType::AVG) {
+                attr_type = FLOATS;
+            }
+            ret_output_scheam.add(attr_type, table_name, attr.attribute_name, attr.aggre_type);
+        }
         ret_tupleset->set_schema(output_scheam);
         rc = ret_tupleset->set_tuple_set(std::move(tuple_set));
+        ret_tupleset->set_schema(ret_output_scheam);
         if (rc != RC::SUCCESS) {
             snprintf(response, sizeof(response), "FAILURE\n");
             session_event->set_response(response);

@@ -37,9 +37,9 @@ DefaultConditionFilter::DefaultConditionFilter() {
 
 DefaultConditionFilter::~DefaultConditionFilter() {}
 
-RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op) {
-    if (attr_type < CHARS || attr_type > NULLS) {
-        LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
+RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType left_attr_type, AttrType right_attr_type, CompOp comp_op) {
+    if ((left_attr_type < CHARS || left_attr_type > NULLS) || (right_attr_type < CHARS || right_attr_type > NULLS)) {
+        LOG_ERROR("Invalid condition with unsupported attribute type: %d, %d", left_attr_type, right_attr_type);
         return RC::INVALID_ARGUMENT;
     }
 
@@ -50,7 +50,8 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
 
     left_ = left;
     right_ = right;
-    attr_type_ = attr_type;
+    left_attr_type_ = left_attr_type;
+    right_attr_type_ = right_attr_type;
     comp_op_ = comp_op;
     return RC::SUCCESS;
 }
@@ -143,11 +144,11 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
     //  }
     // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
     // 但是选手们还是要实现。这个功能在预选赛中会出现
-    if (type_left != type_right && (type_left != NULLS && type_right != NULLS)) {  // both are not null, and unmatch
+    if ((type_left != type_right) && ((type_left != FLOATS && type_left != INTS) || (type_right != FLOATS && type_right != INTS)) && (type_left != NULLS && type_right != NULLS)) {  // both are not null, and unmatch
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
 
-    return init(left, right, type_left, condition.comp);
+    return init(left, right, type_left, type_right, condition.comp);
 }
 
 std::vector<std::string> split_(const std::string &s, char delim) {
@@ -263,7 +264,7 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
             LOG_PANIC("Never should print this.");
         }
     } else {  // notnull comop notnull
-        switch (attr_type_) {  // left.attr_type
+        switch (left_attr_type_) {  // left.attr_type
             case CHARS:
             case TEXTS: {  // 字符串都是定长的，直接比较
                 // 按照C字符串风格来定
@@ -273,15 +274,27 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
             case INTS: {
                 // 没有考虑大小端问题
                 // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-                int left = *(int *) left_value;
-                int right = *(int *) right_value;
-                cmp_result = left - right;
+                if (right_attr_type_ == INTS) {
+                    int left = *(int *) left_value;
+                    int right = *(int *) right_value;
+                    cmp_result = left - right;
+                } else {
+                    int left = *(int *) left_value;
+                    float right = *(float *) right_value;
+                    cmp_result = left - right;
+                }
             }
                 break;
             case FLOATS: {
-                float left = *(float *) left_value;
-                float right = *(float *) right_value;
-                cmp_result = left - right;
+                if (right_attr_type_ == FLOATS) {
+                    float left = *(float *) left_value;
+                    float right = *(float *) right_value;
+                    cmp_result = left - right;
+                } else {
+                    int left = *(int *) left_value;
+                    float right = *(float *) right_value;
+                    cmp_result = left - right;
+                }      
             }
                 break;
             case DATES: {
