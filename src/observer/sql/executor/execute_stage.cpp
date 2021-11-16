@@ -315,7 +315,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             sql->sstr.selection.conditions[i].left_type = VALUE;
             sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
             if(subselection_res->is_empty()){
-                sql->sstr.selection.conditions[i].right_value.type = NULLS;
+                sql->sstr.selection.conditions[i].left_value.type = NULLS;
                 sql->sstr.selection.conditions[i].left_value.data = nullptr;
             } else if (subselection_res->size()==1) {
                 sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
