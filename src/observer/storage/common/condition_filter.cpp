@@ -194,7 +194,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
                 }
             }
             return ans;
-        } else return false;
+        } 
     }
 
     if (!right_.is_attr) {
@@ -225,7 +225,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
                 }
             }
             return ans;
-        } else return false;
+        } 
     }
 
     return filter_composed(rec, comp_op_, nullptr, nullptr);
