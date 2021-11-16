@@ -310,11 +310,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             if (ret != RC::SUCCESS) {
                 return ret;
             }
-            TupleSet *subselection_res = new TupleSet();
-            do_select(db, subselection, session_event, subselection_res);
-            if (subselection_res->get_schema().fields().size() != 1) {
+            if (subselection->sstr.selection.attr_num != 1 || subselection->sstr.selection.attributes[0].relation_name == "*") {
                 return RC::INVALID_ARGUMENT;
             }
+            TupleSet *subselection_res = new TupleSet();
+            do_select(db, subselection, session_event, subselection_res);
 
             sql->sstr.selection.conditions[i].left_type = VALUE;
             sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
@@ -346,11 +346,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             if (ret != RC::SUCCESS) {
                 return ret;
             }
-            TupleSet *subselection_res = new TupleSet();
-            do_select(db, subselection, session_event, subselection_res);
-            if (subselection_res->get_schema().fields().size() != 1) {
+            if (subselection->sstr.selection.attr_num != 1 || subselection->sstr.selection.attributes[0].relation_name == "*") {
                 return RC::INVALID_ARGUMENT;
             }
+            TupleSet *subselection_res = new TupleSet();
+            do_select(db, subselection, session_event, subselection_res);
 
             sql->sstr.selection.conditions[i].right_type = VALUE;
             sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
