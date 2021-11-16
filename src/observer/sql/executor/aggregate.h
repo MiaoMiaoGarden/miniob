@@ -115,6 +115,7 @@ public:
     }
 
     std::shared_ptr<TupleValue> get_value(int index) {
+        if (record_map.size() == 0) return nullptr;
         return record_map[index]->value();
     }
 

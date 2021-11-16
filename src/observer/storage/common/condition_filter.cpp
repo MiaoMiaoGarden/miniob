@@ -83,7 +83,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
     } else {
         type_left = condition.left_value.type;
         left.is_attr = false;
-        if (condition.left_value.data != nullptr){
+        if (condition.left_value.type == NULLS) {
+            type_left = NULLS;
+        } else if (condition.left_value.data != nullptr){
             left.value = condition.left_value.data;
             char *left_value = (char *) (left.value);
             if (*left_value == '!') {
@@ -118,7 +120,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
     } else {
         right.is_attr = false;
         type_right = condition.right_value.type;
-        if (condition.right_value.data != nullptr){
+        if (condition.right_value.type == NULLS) {
+            type_right = NULLS;
+        } else if (condition.right_value.data != nullptr){
             right.value = condition.right_value.data;
             char *right_value = (char *) (right.value);
             if (*right_value == '!') {
@@ -232,8 +236,8 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
     }
 
     float cmp_result = 0;  // 0 false, 1 true
-    bool left_is_null = (*left_value == '!');
-    bool right_is_null = (*right_value == '!');
+    bool left_is_null = (*left_value == '!') || left_attr_type_ == NULLS;
+    bool right_is_null = (*right_value == '!') || right_attr_type_ == NULLS;
 
     if (left_is_null && right_is_null) {  // null comop null
         if (comp_op == IS_COMPOP) {   // is
