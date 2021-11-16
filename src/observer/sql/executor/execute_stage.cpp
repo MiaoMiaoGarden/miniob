@@ -381,13 +381,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
 
     const Selects &selects = sql->sstr.selection;
     for(int i = 0; i < condition_num; i++) {
-        if(selects.conditions[i].left_type == ATTR &&
+        if(selects.conditions[i].left_type != ATTR &&
            selects.conditions[i].left_value.type == DATES &&
            !is_valid_date(*((int *)selects.conditions[i].left_value.data))) {
             rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
             break;
         }
-        if(selects.conditions[i].right_type == ATTR &&
+        if(selects.conditions[i].right_type != ATTR &&
            selects.conditions[i].right_value.type == DATES &&
            !is_valid_date(*((int *)selects.conditions[i].right_value.data))) {
             rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
