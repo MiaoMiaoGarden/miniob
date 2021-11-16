@@ -258,8 +258,10 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
     }
 
     float cmp_result = 0;  // 0 false, 1 true
-    bool left_is_null = (*left_value == '!') || left_attr_type_ == NULLS;
-    bool right_is_null = (*right_value == '!') || right_attr_type_ == NULLS;
+    bool left_is_null = left_attr_type_ == NULLS;
+    bool right_is_null = right_attr_type_ == NULLS;
+    if ( !left_is_null ) left_is_null = (*left_value == '!');
+    if ( !right_is_null ) right_is_null = (*right_value == '!');
 
     if (left_is_null && right_is_null) {  // null comop null
         if (comp_op == IS_COMPOP) {   // is
