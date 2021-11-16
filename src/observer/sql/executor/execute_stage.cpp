@@ -314,10 +314,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             do_select(db, subselection, session_event, subselection_res);
             sql->sstr.selection.conditions[i].left_type = VALUE;
             sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
-            if(subselection_res->is_empty()){
+            if(subselection_res->is_empty() || (subselection_res->size()==1 && subselection_res->get(0).get_pointer(0).get()==nullptr)){
                 sql->sstr.selection.conditions[i].left_value.type = NULLS;
                 sql->sstr.selection.conditions[i].left_value.data = nullptr;
+                sql->sstr.selection.conditions[i].left_value.tuple_data_size = 0;
             } else if (subselection_res->size()==1) {
+                sql->sstr.selection.conditions[i].left_value.tuple_data_size = 0;
                 sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
                 sql->sstr.selection.conditions[i].left_value.data = const_cast<void*>(subselection_res->get(0).get(0).get_value_pointer());
             } else {
@@ -344,10 +346,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             do_select(db, subselection, session_event, subselection_res);
             sql->sstr.selection.conditions[i].right_type = VALUE;
             sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
-            if(subselection_res->is_empty()){
+            if(subselection_res->is_empty() || (subselection_res->size()==1 && subselection_res->get(0).get_pointer(0).get()==nullptr)){
                 sql->sstr.selection.conditions[i].right_value.type = NULLS;
                 sql->sstr.selection.conditions[i].right_value.data = nullptr;
+                sql->sstr.selection.conditions[i].right_value.tuple_data_size = 0;
             } else if (subselection_res->size()==1) {
+                sql->sstr.selection.conditions[i].right_value.tuple_data_size = 0;
                 sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
                 sql->sstr.selection.conditions[i].right_value.data = const_cast<void*>(subselection_res->get(0).get(0).get_value_pointer());
             } else {
