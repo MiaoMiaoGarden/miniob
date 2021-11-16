@@ -89,6 +89,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         left.is_attr = false;
         if (condition.left_value.type == NULLS) {
             type_left = NULLS;
+            left.value = condition.left_value.data;
         } else if (condition.left_value.data != nullptr){
             left.value = condition.left_value.data;
             char *left_value = (char *) (left.value);
@@ -126,6 +127,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         type_right = condition.right_value.type;
         if (condition.right_value.type == NULLS) {
             type_right = NULLS;
+            right.value = condition.right_value.data;
         } else if (condition.right_value.data != nullptr){
             right.value = condition.right_value.data;
             char *right_value = (char *) (right.value);
