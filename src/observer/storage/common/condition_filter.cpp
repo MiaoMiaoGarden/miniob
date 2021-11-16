@@ -291,8 +291,8 @@ bool DefaultConditionFilter::filter_composed(const Record &rec, CompOp comp_op, 
                     float right = *(float *) right_value;
                     cmp_result = left - right;
                 } else {
-                    int left = *(int *) left_value;
-                    float right = *(float *) right_value;
+                    float left = *(float *) left_value;
+                    int right = *(int *) right_value;
                     cmp_result = left - right;
                 }      
             }
