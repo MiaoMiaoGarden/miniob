@@ -166,46 +166,62 @@ std::vector<std::string> split_(const std::string &s, char delim) {
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const {
-    if (!left_.is_attr && left_.value == nullptr) {
+    if (!left_.is_attr) {
         if (comp_op_ == IN_COMPOP) {
             bool ans = false;
-            for (int i = 0; i < left_.value_tuple_size; i++) {
-                if (filter_composed(rec, EQUAL_TO, left_.value_tuple[i], nullptr)) {
-                    ans = true;
-                    break;
+            if (left_.value != nullptr || left_attr_type_ == NULLS) {
+                ans = filter_composed(rec, IS_COMPOP, nullptr, nullptr);
+            } else {
+                for (int i = 0; i < left_.value_tuple_size; i++) {
+                    if (filter_composed(rec, IS_COMPOP, left_.value_tuple[i], nullptr)) {
+                        ans = true;
+                        break;
+                    }
                 }
             }
             return ans;
         }
         else if (comp_op_ == NOTIN_COMPOP) {
             bool ans = true;
-            for (int i = 0; i < left_.value_tuple_size; i++) {
-                if (filter_composed(rec, EQUAL_TO, left_.value_tuple[i], nullptr)) {
-                    ans = false;
-                    break;
+            if (left_.value != nullptr || left_attr_type_ == NULLS) {
+                ans = filter_composed(rec, IS_NOT_COMPOP, nullptr, nullptr);
+            } else {
+                for (int i = 0; i < left_.value_tuple_size; i++) {
+                    if (filter_composed(rec, IS_COMPOP, left_.value_tuple[i], nullptr)) {
+                        ans = false;
+                        break;
+                    }
                 }
             }
             return ans;
         } else return false;
     }
 
-    if (!right_.is_attr && right_.value == nullptr) {
+    if (!right_.is_attr) {
         if (comp_op_ == IN_COMPOP) {
             bool ans = false;
-            for (int i = 0; i < right_.value_tuple_size; i++) {
-                if (filter_composed(rec, EQUAL_TO, nullptr, right_.value_tuple[i])) {
-                    ans = true;
-                    break;
+            if (right_.value != nullptr || right_attr_type_ == NULLS) {
+                ans = filter_composed(rec, IS_COMPOP, nullptr, nullptr);
+            } else {
+                for (int i = 0; i < right_.value_tuple_size; i++) {
+                    if (filter_composed(rec, IS_COMPOP, nullptr, right_.value_tuple[i])) {
+                        ans = true;
+                        break;
+                    }
                 }
             }
             return ans;
         }
         else if (comp_op_ == NOTIN_COMPOP) {
             bool ans = true;
-            for (int i = 0; i < right_.value_tuple_size; i++) {
-                if (filter_composed(rec, EQUAL_TO, nullptr, right_.value_tuple[i])) {
-                    ans = false;
-                    break;
+            if (right_.value != nullptr || right_attr_type_ == NULLS) {
+                ans = filter_composed(rec, IS_NOT_COMPOP, nullptr, nullptr);
+            } else {
+                for (int i = 0; i < right_.value_tuple_size; i++) {
+                    if (filter_composed(rec, IS_COMPOP, nullptr, right_.value_tuple[i])) {
+                        ans = false;
+                        break;
+                    }
                 }
             }
             return ans;
