@@ -304,7 +304,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             Query *subselection = (Query *) malloc(sizeof(Query));
             char *subselect_raw = select_raw.conditions[i].left_subselect;
             std::string subselect_string(subselect_raw+1);
-            subselect_string[strlen(subselect_raw)-1] = ';';
+            subselect_string[strlen(subselect_raw)-2] = ';';
+            subselect_string[strlen(subselect_raw)-1] = '\0';
             RC ret = parse(subselect_string.c_str(), subselection);
             if (ret != RC::SUCCESS) {
                 return ret;
@@ -332,6 +333,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             char *subselect_raw = select_raw.conditions[i].right_subselect;
             std::string subselect_string(subselect_raw+1);
             subselect_string[strlen(subselect_raw)-2] = ';';
+            subselect_string[strlen(subselect_raw)-1] = '\0';
             RC ret = parse(subselect_string.c_str(), subselection);
             if (ret != RC::SUCCESS) {
                 return ret;
