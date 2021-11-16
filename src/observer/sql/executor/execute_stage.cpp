@@ -310,7 +310,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             if (ret != RC::SUCCESS) {
                 return ret;
             }
-            if (subselection->sstr.selection.attr_num != 1 || subselection->sstr.selection.attributes[0].relation_name == "*") {
+            if (subselection->sstr.selection.attr_num != 1 || subselection->sstr.selection.attributes[0].attribute_name == "*") {
                 return RC::INVALID_ARGUMENT;
             }
             TupleSet *subselection_res = new TupleSet();
@@ -346,7 +346,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             if (ret != RC::SUCCESS) {
                 return ret;
             }
-            if (subselection->sstr.selection.attr_num != 1 || subselection->sstr.selection.attributes[0].relation_name == "*") {
+            if (subselection->sstr.selection.attr_num != 1 || subselection->sstr.selection.attributes[0].attribute_name == "*") {
                 return RC::INVALID_ARGUMENT;
             }
             TupleSet *subselection_res = new TupleSet();
