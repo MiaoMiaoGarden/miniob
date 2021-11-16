@@ -49,7 +49,7 @@ public:
   DefaultConditionFilter();
   virtual ~DefaultConditionFilter();
 
-  RC init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op);
+  RC init(const ConDesc &left, const ConDesc &right, AttrType left_attr_type, AttrType right_attr_type, CompOp comp_op);
   RC init(Table &table, const Condition &condition);
 
   virtual bool filter(const Record &rec) const;
@@ -71,7 +71,8 @@ public:
 private:
   ConDesc  left_;
   ConDesc  right_;
-  AttrType attr_type_ = UNDEFINED;
+  AttrType left_attr_type_ = UNDEFINED;
+  AttrType right_attr_type_ = UNDEFINED;
   CompOp   comp_op_ = NO_OP;
 };
 
