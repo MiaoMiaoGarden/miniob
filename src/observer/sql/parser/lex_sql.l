@@ -32,7 +32,8 @@ DOT              \.
 QUOTE            [\'\"]
 %x STR
 /*DATE            [0-9]{4}+[0-9}{2}+[0-9]{2}*/
-LRBRACE           [(][^()]*[)]
+SUBLRBRACE        [(][^()]*[)]
+LRBRACE           [(][^()]*{SUBLRBRACE}*[^()]*[)]
 ANYTHING         [^()]*{LRBRACE}*[^()]*
 %%
 
