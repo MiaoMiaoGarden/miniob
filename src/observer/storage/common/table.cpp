@@ -517,7 +517,7 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
 
     IndexScanner *index_scanner = find_index_for_scan(filter);
     if (index_scanner != nullptr) {
-        scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
+        return scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
     }
 
     RC rc = RC::SUCCESS;
