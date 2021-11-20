@@ -143,6 +143,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> NUMBER
 %token <string> FLOAT 
 %token <string> ID
+%token <string> EXPRESSION
 %token <string> PATH
 %token <string> SSS
 %token <string> STAR

@@ -118,12 +118,13 @@ extern int yydebug;
     NUMBER = 319,                  /* NUMBER  */
     FLOAT = 320,                   /* FLOAT  */
     ID = 321,                      /* ID  */
-    PATH = 322,                    /* PATH  */
-    SSS = 323,                     /* SSS  */
-    STAR = 324,                    /* STAR  */
-    STRING_V = 325,                /* STRING_V  */
-    DATE = 326,                    /* DATE  */
-    SUB_SELECTION = 327            /* SUB_SELECTION  */
+    EXPRESSION = 322,              /* EXPRESSION  */
+    PATH = 323,                    /* PATH  */
+    SSS = 324,                     /* SSS  */
+    STAR = 325,                    /* STAR  */
+    STRING_V = 326,                /* STRING_V  */
+    DATE = 327,                    /* DATE  */
+    SUB_SELECTION = 328            /* SUB_SELECTION  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -143,7 +144,7 @@ union YYSTYPE
     char *position;
 
 
-#line 147 "yacc_sql.tab.h"
+#line 148 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

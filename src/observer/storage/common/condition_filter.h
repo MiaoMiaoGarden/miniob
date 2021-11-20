@@ -27,8 +27,10 @@ struct ConDesc {
   int    attr_offset; // 如果是属性，表示在记录中的偏移量
   void * value;       // 如果是值类型，这里记录值的数据
   void * value_tuple[MAX_NUM]; // IN or NOT IN, 最多可以比较20个
+  void * value_tuple_groupby[MAX_NUM];
   bool   nullable;    // 如果是属性，这里记录属性是否可以为null
   int value_tuple_size;
+  int groupby_offset;
 };
 
 class ConditionFilter {

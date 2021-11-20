@@ -332,8 +332,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             } else {
                 sql->sstr.selection.conditions[i].left_value.data = nullptr;
                 sql->sstr.selection.conditions[i].left_value.type = subselection_res->get_schema().field(0).type();
+                sql->sstr.selection.conditions[i].left_value.groupby_attr_name = subselection_res->get_schema().field(1).field_name();
+                sql->sstr.selection.conditions[i].left_value.groupby_rela_name = subselection_res->get_schema().field(1).table_name();
                 for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
                     sql->sstr.selection.conditions[i].left_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
+                    sql->sstr.selection.conditions[i].left_value.tuple_data_groupby[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(1).get_value_pointer()));
                 }
                 sql->sstr.selection.conditions[i].left_value.tuple_data_size = subselection_res->size();
             }
@@ -371,10 +374,56 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             } else {
                 sql->sstr.selection.conditions[i].right_value.data = nullptr;
                 sql->sstr.selection.conditions[i].right_value.type = subselection_res->get_schema().field(0).type();
+                sql->sstr.selection.conditions[i].right_value.groupby_attr_name = subselection_res->get_schema().field(1).field_name();
+                sql->sstr.selection.conditions[i].right_value.groupby_rela_name = subselection_res->get_schema().field(1).table_name();
                 for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
                     sql->sstr.selection.conditions[i].right_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
+                    sql->sstr.selection.conditions[i].right_value.tuple_data_groupby[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(1).get_value_pointer()));
                 }
                 sql->sstr.selection.conditions[i].right_value.tuple_data_size = subselection_res->size();
+            }
+        }
+    }
+
+    const Selects &selects_raw = sql->sstr.selection;
+
+    for(int i = 0; i < condition_num; i++) {
+        if (selects_raw.conditions[i].left_type == ATTR) {
+            if (selects_raw.conditions[i].left_attr.relation_name != nullptr && tables_map.find(selects_raw.conditions[i].left_attr.relation_name)==tables_map.end()) {
+                // cross father
+                sql->sstr.selection.attributes[ sql->sstr.selection.attr_num++] = selects_raw.conditions[i].left_attr; 
+                sql->sstr.selection.relations[sql->sstr.selection.relation_num++] = selects_raw.conditions[i].left_attr.relation_name;
+                sql->sstr.selection.groupby_attr[sql->sstr.selection.groupby_num++] = selects_raw.conditions[i].left_attr;
+                const char *table_name = selects_raw.conditions[i].left_attr.relation_name;
+                Table *table = DefaultHandler::get_default().find_table(db, table_name);
+                if (table == nullptr) {
+                    LOG_WARN("No such table [%s] in db [%s]", table_name, db);
+                    snprintf(response, sizeof(response), "FAILURE\n");
+                    session_event->set_response(response);
+                    end_trx_if_need(session, trx, false);
+                    return RC::SCHEMA_TABLE_NOT_EXIST;
+                }
+                std::string table_name1(table_name);
+                tables_map[table_name1] = table;
+            }
+        }
+        if (selects_raw.conditions[i].right_type == ATTR) {
+            if (selects_raw.conditions[i].right_attr.relation_name != nullptr && tables_map.find(selects_raw.conditions[i].right_attr.relation_name)==tables_map.end()) {
+                // cross father
+                sql->sstr.selection.attributes[ sql->sstr.selection.attr_num++] = selects_raw.conditions[i].right_attr; 
+                sql->sstr.selection.relations[sql->sstr.selection.relation_num++] = selects_raw.conditions[i].right_attr.relation_name;
+                sql->sstr.selection.groupby_attr[sql->sstr.selection.groupby_num++] = selects_raw.conditions[i].right_attr;
+                const char *table_name = selects_raw.conditions[i].right_attr.relation_name;
+                Table *table = DefaultHandler::get_default().find_table(db, table_name);
+                if (table == nullptr) {
+                    LOG_WARN("No such table [%s] in db [%s]", table_name, db);
+                    snprintf(response, sizeof(response), "FAILURE\n");
+                    session_event->set_response(response);
+                    end_trx_if_need(session, trx, false);
+                    return RC::SCHEMA_TABLE_NOT_EXIST;
+                }
+                std::string table_name1(table_name);
+                tables_map[table_name1] = table;
             }
         }
     }

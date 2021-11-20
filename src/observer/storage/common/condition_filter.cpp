@@ -27,11 +27,13 @@ DefaultConditionFilter::DefaultConditionFilter() {
     left_.is_attr = false;
     left_.attr_length = 0;
     left_.attr_offset = 0;
+    left_.groupby_offset = -1;
     left_.value = nullptr;
 
     right_.is_attr = false;
     right_.attr_length = 0;
     right_.attr_offset = 0;
+    right_.groupby_offset = -1;
     right_.value = nullptr;
 }
 
@@ -47,10 +49,10 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
         LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
         return RC::INVALID_ARGUMENT;
     }
-
-    if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP && (left.value_tuple_size != 0 || right.value_tuple_size != 0)) {
-        return RC::INVALID_COMPOP;
-    }
+// TODO: check maybe should be reserved 
+    // if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP && (left.value_tuple_size != 0 || right.value_tuple_size != 0)) {
+    //     return RC::INVALID_COMPOP;
+    // }
 
     left_ = left;
     right_ = right;
@@ -79,7 +81,10 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         }
         left.attr_length = field_left->len();
         left.attr_offset = field_left->offset();
-
+        // && strcmp (condition.right_value.groupby_attr_name, condition.left_attr.attribute_name) == 0
+        if (condition.right_value.groupby_attr_name != nullptr ){
+            left.groupby_offset = table_meta.field(condition.right_value.groupby_attr_name)->offset();
+        }
         left.value = nullptr;
         left.nullable = field_left->nullable();
 
@@ -99,6 +104,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         } else if (condition.left_value.tuple_data_size != 0){
             left.value = nullptr;
             for(int i = 0; i < condition.left_value.tuple_data_size; i++) {
+                left.value_tuple_groupby[left.value_tuple_size] = condition.left_value.tuple_data_groupby[i];
                 left.value_tuple[left.value_tuple_size++] = condition.left_value.tuple_data[i];
             }
         } else {
@@ -107,6 +113,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
 
         left.attr_length = 0;
         left.attr_offset = 0;
+        left_.groupby_offset = -1;
     }
 
     if (ATTR == condition.right_type) {
@@ -118,6 +125,10 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         }
         right.attr_length = field_right->len();
         right.attr_offset = field_right->offset();
+        // && strcmp (condition.left_value.groupby_attr_name, condition.right_attr.attribute_name) == 0
+        if (condition.left_value.groupby_attr_name != nullptr ){
+            right.groupby_offset = table_meta.field(condition.left_value.groupby_attr_name)->offset();
+        }
         type_right = field_right->type();
         right.nullable = field_right->nullable();
 
@@ -137,6 +148,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         } else if (condition.right_value.tuple_data_size != 0){
             right.value = nullptr;
             for(int i = 0; i < condition.right_value.tuple_data_size; i++) {
+                right.value_tuple_groupby[right.value_tuple_size] = condition.right_value.tuple_data_groupby[i];
                 right.value_tuple[right.value_tuple_size++] = condition.right_value.tuple_data[i];
             }
         } else {
@@ -145,6 +157,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
 
         right.attr_length = 0;
         right.attr_offset = 0;
+        right_.groupby_offset = -1;
     }
 
     // 校验和转换
@@ -173,13 +186,25 @@ std::vector<std::string> split_(const std::string &s, char delim) {
 
 bool DefaultConditionFilter::filter(const Record &rec) const {
     if (!left_.is_attr) {
+        void * valuetuple[left_.value_tuple_size];
+        int value_tuple_count = 0;
+        if (left_.value_tuple_size != 0) {
+            void *groupby_index = rec.data + right_.groupby_offset;
+            for (int i = 0; i < left_.value_tuple_size; i++) {
+                if (strcmp((char *)(left_.value_tuple_groupby[i]), (char*)groupby_index) == 0
+                || *(int*)(left_.value_tuple_groupby[i]) == *(int*)(groupby_index)
+                    || abs(*(float*)(left_.value_tuple_groupby[i]) - *(float*)(groupby_index))<1e-2 ) {
+                    valuetuple[value_tuple_count++] = left_.value_tuple[i];
+                }
+            }
+        }
         if (comp_op_ == IN_COMPOP) {
             bool ans = false;
             if (left_.value != nullptr || left_attr_type_ == NULLS) {
                 ans = filter_composed(rec, IS_COMPOP, nullptr, nullptr);
             } else {
-                for (int i = 0; i < left_.value_tuple_size; i++) {
-                    if (filter_composed(rec, IS_COMPOP, left_.value_tuple[i], nullptr)) {
+                for (int i = 0; i < value_tuple_count; i++) {
+                    if (filter_composed(rec, IS_COMPOP, valuetuple[i], nullptr)) {
                         ans = true;
                         break;
                     }
@@ -192,25 +217,40 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
             if (left_.value != nullptr || left_attr_type_ == NULLS) {
                 ans = filter_composed(rec, IS_NOT_COMPOP, nullptr, nullptr);
             } else {
-                for (int i = 0; i < left_.value_tuple_size; i++) {
-                    if (filter_composed(rec, IS_COMPOP, left_.value_tuple[i], nullptr)) {
+                for (int i = 0; i < value_tuple_count; i++) {
+                    if (filter_composed(rec, IS_COMPOP, valuetuple[i], nullptr)) {
                         ans = false;
                         break;
                     }
                 }
             }
             return ans;
-        } 
+        } else if (value_tuple_count != 0){
+            return filter_composed(rec, comp_op_, valuetuple[0], nullptr);
+        }
     }
+    
 
     if (!right_.is_attr) {
+        void * valuetuple[right_.value_tuple_size];
+        int value_tuple_count = 0;
+        if (right_.value_tuple_size != 0) {
+            void *groupby_index = rec.data + left_.groupby_offset;
+            for (int i = 0; i < right_.value_tuple_size; i++) {
+                if (strcmp((char *)(right_.value_tuple_groupby[i]), (char*)groupby_index) == 0
+                    || *(int*)(right_.value_tuple_groupby[i]) == *(int*)(groupby_index)
+                    || abs(*(float*)(right_.value_tuple_groupby[i]) - *(float*)(groupby_index))<1e-2 ) {
+                    valuetuple[value_tuple_count++] = right_.value_tuple[i];
+                }
+            }
+        }
         if (comp_op_ == IN_COMPOP) {
             bool ans = false;
             if (right_.value != nullptr || right_attr_type_ == NULLS) {
                 ans = filter_composed(rec, IS_COMPOP, nullptr, nullptr);
             } else {
-                for (int i = 0; i < right_.value_tuple_size; i++) {
-                    if (filter_composed(rec, IS_COMPOP, nullptr, right_.value_tuple[i])) {
+                for (int i = 0; i < value_tuple_count; i++) {
+                    if (filter_composed(rec, IS_COMPOP, nullptr, valuetuple[i])) {
                         ans = true;
                         break;
                     }
@@ -223,15 +263,17 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
             if (right_.value != nullptr || right_attr_type_ == NULLS) {
                 ans = filter_composed(rec, IS_NOT_COMPOP, nullptr, nullptr);
             } else {
-                for (int i = 0; i < right_.value_tuple_size; i++) {
-                    if (filter_composed(rec, IS_COMPOP, nullptr, right_.value_tuple[i])) {
+                for (int i = 0; i < value_tuple_count; i++) {
+                    if (filter_composed(rec, IS_COMPOP, nullptr, valuetuple[i])) {
                         ans = false;
                         break;
                     }
                 }
             }
             return ans;
-        } 
+        } else if (value_tuple_count != 0){
+            return filter_composed(rec, comp_op_, nullptr, valuetuple[0]);
+        }
     }
 
     return filter_composed(rec, comp_op_, nullptr, nullptr);
