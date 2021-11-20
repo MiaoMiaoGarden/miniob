@@ -219,7 +219,7 @@ std::vector<std::string> split_(const std::string &s, char delim) {
 
 bool DefaultConditionFilter::filter(const Record &rec) const {
     if (!left_.is_attr) {
-        void * valuetuple[left_.value_tuple_size];
+        void * valuetuple[left_.value_tuple_size+10];
         int value_tuple_count = 0;
         if (left_.value_tuple_size != 0) {
             for (int i = 0; i < left_.value_tuple_size; i++) {
@@ -267,7 +267,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
     
 
     if (!right_.is_attr) {
-        void * valuetuple[right_.value_tuple_size];
+        void * valuetuple[right_.value_tuple_size+10];
         int value_tuple_count = 0;
         if (right_.value_tuple_size != 0) {
             for (int i = 0; i < right_.value_tuple_size; i++) {
