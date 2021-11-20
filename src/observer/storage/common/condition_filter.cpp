@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "record_manager.h"
 #include "common/log/log.h"
 #include "storage/common/table.h"
+#include "unordered_set"
 
 using namespace common;
 
@@ -50,9 +51,33 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
         return RC::INVALID_ARGUMENT;
     }
 // TODO: check maybe should be reserved 
-    // if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP && (left.value_tuple_size != 0 || right.value_tuple_size != 0)) {
-    //     return RC::INVALID_COMPOP;
-    // }
+     if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP ) {
+         if (left.groupby_offset >= 0) {
+             std::unordered_set<void*> key_set = {};
+             for ( int i = 0; i < left.value_tuple_size; i++ ) {
+                 if (key_set.find(left.value_tuple_groupby[i]) == key_set.end()) {
+                     return RC::INVALID_COMPOP;
+                 } else {
+                     key_set.insert(left.value_tuple_groupby[i]);
+                 }
+             }
+         } else if (left.value_tuple_size != 0) {
+             return RC::INVALID_COMPOP;
+         }
+
+         if (right.groupby_offset >= 0) {
+             std::unordered_set<void *> key_set = {};
+             for ( int i = 0; i < right.value_tuple_size; i++ ) {
+                 if (key_set.find(right.value_tuple_groupby[i]) == key_set.end()) {
+                     return RC::INVALID_COMPOP;
+                 } else {
+                     key_set.insert(right.value_tuple_groupby[i]);
+                 }
+             }
+         } else if (right.value_tuple_size != 0) {
+             return RC::INVALID_COMPOP;
+         }
+     }
 
     left_ = left;
     right_ = right;
@@ -283,8 +308,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
                 }
             }
             return ans;
-        } else if (value_tuple_count != 0){
+        } else if (value_tuple_count == 1){
             return filter_composed(rec, comp_op_, nullptr, valuetuple[0]);
+        } else {
+
         }
     }
 

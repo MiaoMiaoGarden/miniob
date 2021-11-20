@@ -515,13 +515,10 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
         limit = INT_MAX;
     }
 
-    /*
-     * 暂时不适用 index scanner
     IndexScanner *index_scanner = find_index_for_scan(filter);
     if (index_scanner != nullptr) {
-        return scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
-    } 
-    */
+        scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
+    }
 
     RC rc = RC::SUCCESS;
     RecordFileScanner scanner;
