@@ -106,7 +106,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         } else if (condition.left_value.tuple_data_size != 0){
             left.value = nullptr;
             for(int i = 0; i < condition.left_value.tuple_data_size; i++) {
-                left.value_tuple_groupby[left.value_tuple_size] = condition.left_value.tuple_data_groupby[i];
+                if (condition.left_value.groupby_attr_name != nullptr) {
+                    left.value_tuple_groupby[left.value_tuple_size] = condition.left_value.tuple_data_groupby[i];
+                }
                 left.value_tuple[left.value_tuple_size++] = condition.left_value.tuple_data[i];
             }
         } else {
@@ -152,7 +154,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         } else if (condition.right_value.tuple_data_size != 0){
             right.value = nullptr;
             for(int i = 0; i < condition.right_value.tuple_data_size; i++) {
-                right.value_tuple_groupby[right.value_tuple_size] = condition.right_value.tuple_data_groupby[i];
+                if (condition.right_value.groupby_attr_name != nullptr) {
+                    right.value_tuple_groupby[right.value_tuple_size] = condition.right_value.tuple_data_groupby[i];
+                }
                 right.value_tuple[right.value_tuple_size++] = condition.right_value.tuple_data[i];
             }
         } else {

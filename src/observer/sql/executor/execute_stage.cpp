@@ -335,6 +335,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
                 if(subselection_res->get_schema().fields().size() != 1) {
                     sql->sstr.selection.conditions[i].left_value.groupby_attr_name = subselection_res->get_schema().field(1).field_name();
                     sql->sstr.selection.conditions[i].left_value.groupby_rela_name = subselection_res->get_schema().field(1).table_name();
+                } else {
+                    sql->sstr.selection.conditions[i].left_value.groupby_attr_name = nullptr;
+                    sql->sstr.selection.conditions[i].left_value.groupby_rela_name = nullptr;
                 }
                 for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
                     sql->sstr.selection.conditions[i].left_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
@@ -381,7 +384,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
                 if(subselection_res->get_schema().fields().size() != 1) {
                     sql->sstr.selection.conditions[i].right_value.groupby_attr_name = subselection_res->get_schema().field(1).field_name();
                     sql->sstr.selection.conditions[i].right_value.groupby_rela_name = subselection_res->get_schema().field(1).table_name();
-                }  
+                } else {
+                    sql->sstr.selection.conditions[i].right_value.groupby_rela_name = nullptr;
+                    sql->sstr.selection.conditions[i].right_value.groupby_attr_name = nullptr;
+                }
                 for(int tuple_index = 0; tuple_index<subselection_res->size(); tuple_index++){
                     sql->sstr.selection.conditions[i].right_value.tuple_data[tuple_index] = (const_cast<void*>(subselection_res->get(tuple_index).get(0).get_value_pointer()));
                     if(subselection_res->get_schema().fields().size() != 1) {
