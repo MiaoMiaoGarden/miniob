@@ -84,6 +84,8 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         // && strcmp (condition.right_value.groupby_attr_name, condition.left_attr.attribute_name) == 0
         if (condition.right_value.groupby_attr_name != nullptr ){
             left.groupby_offset = table_meta.field(condition.right_value.groupby_attr_name)->offset();
+        } else {
+            left.groupby_offset = -1;
         }
         left.value = nullptr;
         left.nullable = field_left->nullable();
@@ -113,7 +115,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
 
         left.attr_length = 0;
         left.attr_offset = 0;
-        left_.groupby_offset = -1;
+        left.groupby_offset = -1;
     }
 
     if (ATTR == condition.right_type) {
@@ -128,6 +130,8 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         // && strcmp (condition.left_value.groupby_attr_name, condition.right_attr.attribute_name) == 0
         if (condition.left_value.groupby_attr_name != nullptr ){
             right.groupby_offset = table_meta.field(condition.left_value.groupby_attr_name)->offset();
+        } else {
+            right.groupby_offset = -1;
         }
         type_right = field_right->type();
         right.nullable = field_right->nullable();
@@ -157,7 +161,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
 
         right.attr_length = 0;
         right.attr_offset = 0;
-        right_.groupby_offset = -1;
+        right.groupby_offset = -1;
     }
 
     // 校验和转换
@@ -190,10 +194,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
         int value_tuple_count = 0;
         if (left_.value_tuple_size != 0) {
             for (int i = 0; i < left_.value_tuple_size; i++) {
-                if (right_.groupby_offset<0 || (
-                strcmp((char *)(left_.value_tuple_groupby[i]), (char*)(rec.data + right_.groupby_offset)) == 0
+                if (right_.groupby_offset<0 ) {
+                     valuetuple[value_tuple_count++] = left_.value_tuple[i];
+                } else if ( strcmp((char *)(left_.value_tuple_groupby[i]), (char*)(rec.data + right_.groupby_offset)) == 0
                 || *(int*)(left_.value_tuple_groupby[i]) == *(int*)(rec.data + right_.groupby_offset)
-                    || abs(*(float*)(left_.value_tuple_groupby[i]) - *(float*)(rec.data + right_.groupby_offset))<1e-2 ) ) {
+                    || abs(*(float*)(left_.value_tuple_groupby[i]) - *(float*)(rec.data + right_.groupby_offset))<1e-2 )  {
                     valuetuple[value_tuple_count++] = left_.value_tuple[i];
                 }
             }
@@ -236,10 +241,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
         int value_tuple_count = 0;
         if (right_.value_tuple_size != 0) {
             for (int i = 0; i < right_.value_tuple_size; i++) {
-                if (left_.groupby_offset < 0 
-                || ( ((char *)(right_.value_tuple_groupby[i]), (char*)(rec.data + left_.groupby_offset)) == 0
+                if (left_.groupby_offset < 0 ) {
+                    valuetuple[value_tuple_count++] = right_.value_tuple[i];
+                } else if ( ((char *)(right_.value_tuple_groupby[i]), (char*)(rec.data + left_.groupby_offset)) == 0
                     || *(int*)(right_.value_tuple_groupby[i]) == *(int*)(rec.data + left_.groupby_offset)
-                    || abs(*(float*)(right_.value_tuple_groupby[i]) - *(float*)(rec.data + left_.groupby_offset))<1e-2 )) {
+                    || abs(*(float*)(right_.value_tuple_groupby[i]) - *(float*)(rec.data + left_.groupby_offset))<1e-2 ) {
                     valuetuple[value_tuple_count++] = right_.value_tuple[i];
                 }
             }
