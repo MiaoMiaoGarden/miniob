@@ -47,10 +47,10 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
         LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
         return RC::INVALID_ARGUMENT;
     }
-
-    if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP && (left.value_tuple_size != 0 || right.value_tuple_size != 0)) {
-        return RC::INVALID_COMPOP;
-    }
+// TODO: check maybe should be reserved 
+    // if (comp_op != IN_COMPOP && comp_op != NOTIN_COMPOP && (left.value_tuple_size != 0 || right.value_tuple_size != 0)) {
+    //     return RC::INVALID_COMPOP;
+    // }
 
     left_ = left;
     right_ = right;
@@ -99,6 +99,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         } else if (condition.left_value.tuple_data_size != 0){
             left.value = nullptr;
             for(int i = 0; i < condition.left_value.tuple_data_size; i++) {
+                left.value_tuple_groupby[left.value_tuple_size] = condition.left_value.tuple_data_groupby[i];
                 left.value_tuple[left.value_tuple_size++] = condition.left_value.tuple_data[i];
             }
         } else {
@@ -137,6 +138,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition) {
         } else if (condition.right_value.tuple_data_size != 0){
             right.value = nullptr;
             for(int i = 0; i < condition.right_value.tuple_data_size; i++) {
+                right.value_tuple_groupby[right.value_tuple_size] = condition.right_value.tuple_data_groupby[i];
                 right.value_tuple[right.value_tuple_size++] = condition.right_value.tuple_data[i];
             }
         } else {
@@ -202,6 +204,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
             return ans;
         } 
     }
+    char* left_value;
+    if (left_.is_attr) {  // value
+        left_value = (char *) (rec.data + left_.attr_offset);
+    } 
+    
 
     if (!right_.is_attr) {
         if (comp_op_ == IN_COMPOP) {

@@ -73,6 +73,9 @@ typedef struct _Value {
     void *data;     // value
     int tuple_data_size;
     void* tuple_data[MAX_NUM];
+    void* tuple_data_groupby[MAX_NUM];
+    const char* groupby_rela_name;
+    const char* groupby_attr_name;
 } Value;
 
 typedef struct _Orderby {
