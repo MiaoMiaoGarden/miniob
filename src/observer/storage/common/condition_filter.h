@@ -30,6 +30,7 @@ struct ConDesc {
   void * value_tuple_groupby[MAX_NUM];
   bool   nullable;    // 如果是属性，这里记录属性是否可以为null
   int value_tuple_size;
+  int groupby_offset;
 };
 
 class ConditionFilter {
