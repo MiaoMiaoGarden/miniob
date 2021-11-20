@@ -191,9 +191,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
         if (left_.value_tuple_size != 0) {
             void *groupby_index = rec.data + right_.groupby_offset;
             for (int i = 0; i < left_.value_tuple_size; i++) {
-                if (strcmp((char *)(left_.value_tuple_groupby[i]), (char*)groupby_index) == 0
+                if (right_.groupby_offset<0 || (
+                strcmp((char *)(left_.value_tuple_groupby[i]), (char*)groupby_index) == 0
                 || *(int*)(left_.value_tuple_groupby[i]) == *(int*)(groupby_index)
-                    || abs(*(float*)(left_.value_tuple_groupby[i]) - *(float*)(groupby_index))<1e-2 ) {
+                    || abs(*(float*)(left_.value_tuple_groupby[i]) - *(float*)(groupby_index))<1e-2 ) ) {
                     valuetuple[value_tuple_count++] = left_.value_tuple[i];
                 }
             }
@@ -237,9 +238,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
         if (right_.value_tuple_size != 0) {
             void *groupby_index = rec.data + left_.groupby_offset;
             for (int i = 0; i < right_.value_tuple_size; i++) {
-                if (strcmp((char *)(right_.value_tuple_groupby[i]), (char*)groupby_index) == 0
+                if (left_.groupby_offset < 0 
+                || ( ((char *)(right_.value_tuple_groupby[i]), (char*)groupby_index) == 0
                     || *(int*)(right_.value_tuple_groupby[i]) == *(int*)(groupby_index)
-                    || abs(*(float*)(right_.value_tuple_groupby[i]) - *(float*)(groupby_index))<1e-2 ) {
+                    || abs(*(float*)(right_.value_tuple_groupby[i]) - *(float*)(groupby_index))<1e-2 )) {
                     valuetuple[value_tuple_count++] = right_.value_tuple[i];
                 }
             }
