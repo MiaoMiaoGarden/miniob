@@ -253,7 +253,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
                 ans = filter_composed(rec, IS_NOT_COMPOP, nullptr, nullptr);
             } else {
                 for (int i = 0; i < value_tuple_count; i++) {
-                    if (filter_composed(rec, IS_NOT_COMPOP, valuetuple[i], nullptr)) {
+                    if (filter_composed(rec, IS_COMPOP, valuetuple[i], nullptr)) {
                         ans = false;
                         break;
                     }
@@ -301,7 +301,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const {
                 ans = filter_composed(rec, IS_NOT_COMPOP, nullptr, nullptr);
             } else {
                 for (int i = 0; i < value_tuple_count; i++) {
-                    if (filter_composed(rec, IS_NOT_COMPOP, nullptr, valuetuple[i])) {
+                    if (filter_composed(rec, IS_COMPOP, nullptr, valuetuple[i])) {
                         ans = false;
                         break;
                     }
